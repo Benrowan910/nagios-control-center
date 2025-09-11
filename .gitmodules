@@ -1,0 +1,3 @@
+[submodule "nagios-core"]
+	path = nagios-core
+	url = https://github.com/NagiosEnterprises/nagioscore.git
