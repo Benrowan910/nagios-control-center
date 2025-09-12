@@ -1,42 +1,57 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* === Tailwind Base === */
+@import "tailwindcss";
+
+/* === Theme Variables === */
+:root {
+  --color-primary: 59 130 246;   /* Blue-500 */
+  --color-tertiary: 16 185 129;  /* Emerald-500 */
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* === Global Styles === */
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold tracking-tight text-gray-800;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+a {
+  @apply text-primary hover:underline;
 }
 
+/* === Theme Variants (optional overrides) === */
+.theme-primary {
+  --color-primary: 59 130 246; /* Blue */
+}
+
+.theme-tertiary {
+  --color-tertiary: 16 185 129; /* Emerald */
+}
+
+/* === Utility Classes Using Variables === */
+.bg-primary {
+  background-color: rgb(var(--color-primary) / 1);
+}
+.text-primary {
+  color: rgb(var(--color-primary) / 1);
+}
+.border-primary {
+  border-color: rgb(var(--color-primary) / 1);
+}
+
+.bg-tertiary {
+  background-color: rgb(var(--color-tertiary) / 1);
+}
+.text-tertiary {
+  color: rgb(var(--color-tertiary) / 1);
+}
+.border-tertiary {
+  border-color: rgb(var(--color-tertiary) / 1);
+}
+
+/* === Reusable Card Style === */
 .card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  @apply bg-white rounded-xl shadow-md p-6 border border-gray-200;
 }
