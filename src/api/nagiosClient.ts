@@ -6,8 +6,8 @@ interface XIInstance {
 }
 
 export async function fetchHostStatus(instance: XIInstance) {
-    const res = await fetch('${instance.url}/nagiosxi/api/v1/objects/hoststatus', {
-        headers: {"Authorization": 'Bearer ${instance.apiKey}' }
+    const res = await fetch(`${instance.url}/nagiosxi/api/v1/objects/servicestatus`, {
+        headers: {"Authorization": `Bearer ${instance.apiKey}` }
 
     });
     return res.json();
