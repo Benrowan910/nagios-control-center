@@ -1,4 +1,4 @@
-import { INSTANCES } from "../api/instances";
+import { INSTANCES, XIInstance } from "../api/instances";
 import Dashlet from "./Dashlet";
 import { Link } from "react-router-dom";
 
@@ -16,7 +16,9 @@ export default function Dashboard() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {INSTANCES.map((inst) => (
-          <Dashlet key={inst.id} instance={inst} />
+          <Dashlet key={inst.id} instance={inst} isAuthenticated={false} onInstanceUpdate={function (instance: XIInstance): void {
+            throw new Error("Function not implemented.");
+          } } />
         ))}
       </div>
     </div>
