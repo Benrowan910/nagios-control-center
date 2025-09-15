@@ -1,21 +1,18 @@
 export interface XIInstance {
-    id: string;
-    name: string;
-    url: string;
-    apiKey: string;
+  id: string;
+  name: string;           // Canonical XI instance name
+  url: string;            // API URL
+  apiKey: string;        // API key (if using API authentication)
+  username?: string;      // Username (if using basic auth)
+  password?: string;      // Password (if using basic auth)
+  nickname?: string;      // Friendly display name
+  purpose?: string;       // What this XI monitors
+  location?: string;      // Location for weather data
+  latitude?: number;      // Latitude for weather
+  longitude?: number;     // Longitude for weather
+  authenticated: boolean; // Whether instance is authenticated
 }
 
-export const INSTANCES: XIInstance[] = [
-    {
-        id: "1",
-        name: "Nagios XI - Data Center A",
-        url: "http://xi1.example.com",
-        apiKey: "demo-key-1",
-    },
-    {
-        id: "2",
-        name: "Nagios XI - Data Center B",
-        url: "http://xi2.example.com",
-        apiKey: "demo-key-2",
-    },
+export let INSTANCES: XIInstance[] = [
+  // Start with empty array, instances will be added through UI
 ];
