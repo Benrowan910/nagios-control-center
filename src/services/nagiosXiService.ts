@@ -1,17 +1,23 @@
 // Service to interact with Nagios XI API
 export interface HostStatus {
+  host_object_id: string;
   host_name: string;
-  current_state: number; // 0=UP, 1=DOWN, 2=UNREACHABLE
-  plugin_output: string;
+  host_alias: string;
+  display_name: string;
+  address: string;
+  current_state: string;
+  output: string;
   last_check: string;
+  [key: string]: any;
 }
 
 export interface ServiceStatus {
   host_name: string;
   service_description: string;
-  current_state: number; // 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN
+  current_state: number;
   plugin_output: string;
   last_check: string;
+  [key: string]: any;
 }
 
 export interface SystemInfo {
@@ -20,18 +26,56 @@ export interface SystemInfo {
   license: string;
   hosts_total: number;
   services_total: number;
+  [key: string]: any;
+}
+
+export interface HostStatusResponse {
+  recordcount: number;
+  hoststatus: HostStatus[];
+  [key: string]: any;
+}
+
+export interface ServiceStatusResponse {
+  recordcount: number;
+  servicestatus: ServiceStatus[];
+  [key: string]: any;
 }
 
 export class NagiosXIService {
+  private static async makeApiRequest(url: string): Promise<any> {
+    try {
+      console.log(`Making API request to: ${url}`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API request failed with status ${response.status}:`, errorText);
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        // If not JSON, try to parse as text first to see what we got
+        const textResponse = await response.text();
+        console.warn('API returned non-JSON response:', textResponse.substring(0, 200));
+        throw new Error('API returned non-JSON response');
+      }
+    } catch (error) {
+      console.error('API request error:', error);
+      throw error;
+    }
+  }
+
   static async authenticate(instance: any, username: string, password: string): Promise<boolean> {
     try {
-      // This would be the actual authentication endpoint for Nagios XI
-      const response = await fetch(`${instance.url}/nagiosxi/api/v1/system/status`, {
-        headers: {
-          'Authorization': 'Basic ' + btoa(username + ':' + password)
-        }
-      });
-      
+        const response = await fetch(`${instance.url}/nagiosxi/api/v1/system/status`, {
+            headers: {
+            'Authorization': 'Basic ' + btoa(username + ':' + password)
+            }
+        });
       return response.ok;
     } catch (error) {
       console.error('Authentication failed:', error);
@@ -41,18 +85,17 @@ export class NagiosXIService {
 
   static async getSystemInfo(instance: any): Promise<SystemInfo> {
     try {
-      // This would be the actual API endpoint for system info
-      const response = await fetch(`${instance.url}/nagiosxi/api/v1/system/info`, {
-        headers: {
-          'Authorization': 'Basic ' + btoa(instance.username + ':' + instance.password)
-        }
-      });
+      const url = `https://${instance.url}/nagiosxi/api/v1/system/info?apikey=${instance.apiKey}`;
+      const data = await this.makeApiRequest(url);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch system info');
+      // Handle different possible response formats
+      if (data.recordcount !== undefined && data.systeminfo !== undefined) {
+        return data.systeminfo[0]; // If response is {recordcount: X, systeminfo: [...]}
+      } else if (data.product !== undefined) {
+        return data; // If response is directly the system info
+      } else {
+        throw new Error('Unexpected API response format for system info');
       }
-      
-      return await response.json();
     } catch (error) {
       console.error('Failed to get system info:', error);
       throw error;
@@ -61,18 +104,17 @@ export class NagiosXIService {
 
   static async getHostStatus(instance: any): Promise<HostStatus[]> {
     try {
-      // This would be the actual API endpoint for host status
-      const response = await fetch(`${instance.url}/nagiosxi/api/v1/objects/hoststatus`, {
-        headers: {
-          'Authorization': 'Basic ' + btoa(instance.username + ':' + instance.password)
-        }
-      });
+      const url = `https://${instance.url}/nagiosxi/api/v1/objects/hoststatus?apikey=${instance.apiKey}`;
+      const data = await this.makeApiRequest(url);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch host status');
+      // Handle different possible response formats
+      if (data.recordcount !== undefined && data.hoststatus !== undefined) {
+        return data.hoststatus;
+      } else if (Array.isArray(data)) {
+        return data; // If response is directly an array
+      } else {
+        throw new Error('Unexpected API response format for host status');
       }
-      
-      return await response.json();
     } catch (error) {
       console.error('Failed to get host status:', error);
       throw error;
@@ -81,20 +123,42 @@ export class NagiosXIService {
 
   static async getServiceStatus(instance: any): Promise<ServiceStatus[]> {
     try {
-      // This would be the actual API endpoint for service status
-      const response = await fetch(`${instance.url}/nagiosxi/api/v1/objects/servicestatus`, {
-        headers: {
-          'Authorization': 'Basic ' + btoa(instance.username + ':' + instance.password)
-        }
-      });
+      const url = `https://${instance.url}/nagiosxi/api/v1/objects/servicestatus?apikey=${instance.apiKey}`;
+      const data = await this.makeApiRequest(url);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch service status');
+      // Handle different possible response formats
+      if (data.recordcount !== undefined && data.servicestatus !== undefined) {
+        return data.servicestatus;
+      } else if (Array.isArray(data)) {
+        return data; // If response is directly an array
+      } else {
+        throw new Error('Unexpected API response format for service status');
       }
-      
-      return await response.json();
     } catch (error) {
       console.error('Failed to get service status:', error);
+      throw error;
+    }
+  }
+
+  // Test method to debug API responses
+  static async testApiEndpoint(url: string): Promise<any> {
+    try {
+      console.log(`Testing API endpoint: ${url}`);
+      const response = await fetch(url);
+      const text = await response.text();
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Response text (first 500 chars):', text.substring(0, 500));
+      
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        text: text
+      };
+    } catch (error) {
+      console.error('API test failed:', error);
       throw error;
     }
   }

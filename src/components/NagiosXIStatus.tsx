@@ -10,101 +10,199 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [hostStatus, setHostStatus] = useState<HostStatus[]>([]);
   const [serviceStatus, setServiceStatus] = useState<ServiceStatus[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [systemInfoLoading, setSystemInfoLoading] = useState(true);
+  const [hostStatusLoading, setHostStatusLoading] = useState(true);
+  const [serviceStatusLoading, setServiceStatusLoading] = useState(true);
+  const [systemInfoError, setSystemInfoError] = useState<string | null>(null);
+  const [hostStatusError, setHostStatusError] = useState<string | null>(null);
+  const [serviceStatusError, setServiceStatusError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSystemInfo = async () => {
       try {
-        setLoading(true);
-        
-        const [info, hosts, services] = await Promise.all([
-          NagiosXIService.getSystemInfo(instance),
-          NagiosXIService.getHostStatus(instance),
-          NagiosXIService.getServiceStatus(instance)
-        ]);
-        
+        setSystemInfoLoading(true);
+        const info = await NagiosXIService.getSystemInfo(instance);
         setSystemInfo(info);
-        setHostStatus(hosts);
-        setServiceStatus(services);
-        setError(null);
+        setSystemInfoError(null);
       } catch (err) {
-        setError("Failed to fetch monitoring data");
-        console.error("Error fetching Nagios XI data:", err);
+        setSystemInfoError("Failed to fetch system info");
+        console.error("Error fetching system info:", err);
       } finally {
-        setLoading(false);
+        setSystemInfoLoading(false);
       }
     };
 
     if (instance.authenticated) {
-      fetchData();
+      fetchSystemInfo();
+    }
+  }, [instance]);
+
+  useEffect(() => {
+    const fetchHostStatus = async () => {
+      try {
+        setHostStatusLoading(true);
+        const hosts = await NagiosXIService.getHostStatus(instance);
+        setHostStatus(hosts);
+        setHostStatusError(null);
+      } catch (err) {
+        setHostStatusError("Failed to fetch host status");
+        console.error("Error fetching host status:", err);
+      } finally {
+        setHostStatusLoading(false);
+      }
+    };
+
+    if (instance.authenticated) {
+      fetchHostStatus();
       
       // Set up polling for real-time updates
-      const interval = setInterval(fetchData, 30000); // Update every 30 seconds
+      const interval = setInterval(fetchHostStatus, 30000);
       return () => clearInterval(interval);
     }
   }, [instance]);
 
-  if (loading) {
-    return <div className="loading">Loading monitoring data...</div>;
-  }
+  // Add this to your NagiosXIStatus component to debug what's happening
+useEffect(() => {
+  console.log('System Info:', systemInfo);
+  console.log('Host Status:', hostStatus);
+  console.log('Service Status:', serviceStatus);
+  console.log('Instance:', instance);
+}, [systemInfo, hostStatus, serviceStatus, instance]);
 
-  if (error) {
-    return <div className="error">{error}</div>;
-  }
+  useEffect(() => {
+    const fetchServiceStatus = async () => {
+      try {
+        setServiceStatusLoading(true);
+        const services = await NagiosXIService.getServiceStatus(instance);
+        setServiceStatus(services);
+        setServiceStatusError(null);
+      } catch (err) {
+        setServiceStatusError("Failed to fetch service status");
+        console.error("Error fetching service status:", err);
+      } finally {
+        setServiceStatusLoading(false);
+      }
+    };
 
-  if (!systemInfo) {
-    return null;
-  }
+    if (instance.authenticated) {
+      fetchServiceStatus();
+      
+      // Set up polling for real-time updates
+      const interval = setInterval(fetchServiceStatus, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [instance]);
 
   // Calculate status counts
   const hostStatusCounts = {
-    up: hostStatus.filter(h => h.current_state === 0).length,
-    down: hostStatus.filter(h => h.current_state === 1).length,
-    unreachable: hostStatus.filter(h => h.current_state === 2).length
+    up: hostStatus.filter(h => h.current_state === '0').length,
+    down: hostStatus.filter(h => h.current_state === '1').length,
+    unreachable: hostStatus.filter(h => h.current_state === '2').length
   };
 
   const serviceStatusCounts = {
-    ok: serviceStatus.filter(s => s.current_state === 0).length,
-    warning: serviceStatus.filter(s => s.current_state === 1).length,
-    critical: serviceStatus.filter(s => s.current_state === 2).length,
-    unknown: serviceStatus.filter(s => s.current_state === 3).length
+    ok: serviceStatus.filter(s => s.current_state === 0 || s.current_state === 0).length,
+    warning: serviceStatus.filter(s => s.current_state === 1 || s.current_state === 0).length,
+    critical: serviceStatus.filter(s => s.current_state === 2 || s.current_state === 0).length,
+    unknown: serviceStatus.filter(s => s.current_state === 3 || s.current_state === 0).length
   };
 
   return (
     <div className="nagios-status">
+      {/* System Info Section */}
       <div className="system-info mb-4">
-        <div className="small">
-          <strong>{systemInfo.product} {systemInfo.version}</strong> | 
-          Hosts: {systemInfo.hosts_total} | 
-          Services: {systemInfo.services_total}
-        </div>
+        {systemInfoLoading ? (
+          <div className="loading small">Loading system info...</div>
+        ) : systemInfoError ? (
+          <div className="error small">{systemInfoError}</div>
+        ) : systemInfo ? (
+          <div className="small">
+            <strong>{systemInfo.product} {systemInfo.version}</strong> | 
+            Hosts: {systemInfo.hosts_total} | 
+            Services: {systemInfo.services_total}
+          </div>
+        ) : null}
       </div>
       
+      {/* Status Grid Section */}
       <div className="status-grid mb-4">
+        {/* Host Status */}
         <div className="status-item">
           <div className="label">Hosts Up</div>
-          <div className="value OK">{hostStatusCounts.up}</div>
+          {hostStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : hostStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value OK">{hostStatusCounts.up}</div>
+          )}
         </div>
+        
         <div className="status-item">
           <div className="label">Hosts Down</div>
-          <div className="value CRITICAL">{hostStatusCounts.down}</div>
+          {hostStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : hostStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value CRITICAL">{hostStatusCounts.down}</div>
+          )}
         </div>
+        
+        <div className="status-item">
+          <div className="label">Hosts Unreachable</div>
+          {hostStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : hostStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value UNKNOWN">{hostStatusCounts.unreachable}</div>
+          )}
+        </div>
+        
+        {/* Service Status */}
         <div className="status-item">
           <div className="label">Services OK</div>
-          <div className="value OK">{serviceStatusCounts.ok}</div>
+          {serviceStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : serviceStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value OK">{serviceStatusCounts.ok}</div>
+          )}
         </div>
+        
         <div className="status-item">
           <div className="label">Services Warn</div>
-          <div className="value WARNING">{serviceStatusCounts.warning}</div>
+          {serviceStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : serviceStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value WARNING">{serviceStatusCounts.warning}</div>
+          )}
         </div>
+        
         <div className="status-item">
           <div className="label">Services Crit</div>
-          <div className="value CRITICAL">{serviceStatusCounts.critical}</div>
+          {serviceStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : serviceStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value CRITICAL">{serviceStatusCounts.critical}</div>
+          )}
         </div>
+        
         <div className="status-item">
           <div className="label">Services Unk</div>
-          <div className="value UNKNOWN">{serviceStatusCounts.unknown}</div>
+          {serviceStatusLoading ? (
+            <div className="value loading">...</div>
+          ) : serviceStatusError ? (
+            <div className="value error">Error</div>
+          ) : (
+            <div className="value UNKNOWN">{serviceStatusCounts.unknown}</div>
+          )}
         </div>
       </div>
     </div>

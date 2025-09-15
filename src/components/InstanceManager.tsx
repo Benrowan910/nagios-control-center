@@ -12,6 +12,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
     name: '',
     url: '',
     nickname: '',
+    apiKey:'',
     purpose: '',
     location: '',
     authenticated: false
@@ -22,7 +23,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
       id: Date.now().toString(),
       name: newInstance.name || '',
       url: newInstance.url || '',
-      apiKey: "0",
+      apiKey: newInstance.apiKey || '',
       nickname: newInstance.nickname,
       purpose: newInstance.purpose,
       location: newInstance.location,
@@ -35,6 +36,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
       name: '',
       url: '',
       nickname: '',
+      apiKey: '',
       purpose: '',
       location: '',
       authenticated: false
@@ -87,6 +89,18 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
                 placeholder="https://nagios.example.com"
                 required
                 className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="apiKey" className="block mb-1">ApiKEY</label>
+              <input
+              type ="apiKey"
+              id="apiKey"
+              value={newInstance.apiKey || ''}
+              onChange={(e) => setNewInstance({...newInstance, apiKey: e.target.value})}
+              placeholder="2130981234098sishjd0"
+              required
+              className="w-full"
               />
             </div>
             <div>

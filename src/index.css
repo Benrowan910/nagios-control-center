@@ -482,3 +482,13 @@ kbd {
 .col-span-2 {
   grid-column: span 2;
 }
+
+.value.loading {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.value.error {
+  color: var(--crit);
+  font-style: italic;
+}
