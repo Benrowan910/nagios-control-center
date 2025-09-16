@@ -5,19 +5,12 @@ import { useAuth } from "../context/AuthContext";
 import { useInstances } from "../context/InstanceContext";
 
 export default function Home() {
-  const { instances, addInstance, updateInstance, loading } = useInstances();
+  const { instances, addInstance, updateInstance, removeInstance } = useInstances();
   const { authenticatedInstances } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="header">
-        <div>
-          <h1>Dashboard Overview</h1>
-          <p className="small">Loading instances...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleInstanceDelete = (instanceId: string) => {
+    removeInstance(instanceId);
+  };
 
   return (
     <div>
@@ -40,6 +33,7 @@ export default function Home() {
               instance={instance}
               isAuthenticated={authenticatedInstances.includes(instance.id)}
               onInstanceUpdate={updateInstance}
+              onInstanceDelete={handleInstanceDelete}
             />
           </div>
         ))}

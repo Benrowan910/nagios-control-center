@@ -49,14 +49,22 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
         </div>
         
         <div className="form-group">
-          <label htmlFor="url">URL</label>
+          <label htmlFor="url">Host Address</label>
           <input
-            type="url"
+            type="text"
             id="url"
-            value={editedInstance.url}
-            onChange={(e) => handleChange('url', e.target.value)}
+            value={editedInstance.url.replace(/^https?:\/\//, '')} // Remove protocol for display
+            onChange={(e) => {
+              // Allow IP addresses, hostnames, or full URLs
+              const value = e.target.value;
+              handleChange('url', value);
+            }}
+            placeholder="192.168.1.100 or nagios.example.com"
             required
           />
+          <div className="form-help">
+            Enter IP address (192.168.1.100) or hostname (nagios.example.com)
+          </div>
         </div>
         
         <div className="form-group">
