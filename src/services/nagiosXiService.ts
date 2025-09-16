@@ -83,8 +83,35 @@ export class NagiosXIService {
     }
   }
 
+  // Add this method to the NagiosXIService class
+static async authenticateWithStoredCredentials(instance: any): Promise<boolean> {
+  try {
+    const credentialsKey = `credentials_${instance.id}`;
+    const storedCredentials = sessionStorage.getItem(credentialsKey);
+    
+    if (storedCredentials) {
+      // Simple decryption (for demo purposes)
+      const credentials = JSON.parse(decodeURIComponent(atob(storedCredentials)));
+      return await this.authenticate(instance, credentials.username, credentials.password);
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error using stored credentials:', error);
+    return false;
+  }
+}
+
   static async getSystemInfo(instance: any): Promise<SystemInfo> {
     try {
+
+            // Try to authenticate with stored credentials first
+    const isAuthenticated = await this.authenticateWithStoredCredentials(instance);
+    
+    if (!isAuthenticated) {
+    throw new Error('Not authenticated');
+    }
+
       const url = `https://${instance.url}/nagiosxi/api/v1/system/info?apikey=${instance.apiKey}`;
       const data = await this.makeApiRequest(url);
       
@@ -104,6 +131,14 @@ export class NagiosXIService {
 
   static async getHostStatus(instance: any): Promise<HostStatus[]> {
     try {
+
+            // Try to authenticate with stored credentials first
+    const isAuthenticated = await this.authenticateWithStoredCredentials(instance);
+    
+    if (!isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
       const url = `https://${instance.url}/nagiosxi/api/v1/objects/hoststatus?apikey=${instance.apiKey}`;
       const data = await this.makeApiRequest(url);
       
@@ -123,6 +158,13 @@ export class NagiosXIService {
 
   static async getServiceStatus(instance: any): Promise<ServiceStatus[]> {
     try {
+
+            // Try to authenticate with stored credentials first
+    const isAuthenticated = await this.authenticateWithStoredCredentials(instance);
+    
+    if (!isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
       const url = `https://${instance.url}/nagiosxi/api/v1/objects/servicestatus?apikey=${instance.apiKey}`;
       const data = await this.makeApiRequest(url);
       
