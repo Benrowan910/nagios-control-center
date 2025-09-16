@@ -40,22 +40,23 @@ export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate }:
       ) : (
         <>
           <p className="small mb-4">Authentication required to view monitoring data</p>
-          <div className="dashlet-footer">
-            <span className="dashlet-url">{instance.url}</span>
-            <button 
-              onClick={() => setShowLogin(true)}
-              className="btn btn-primary"
-            >
-              Login
-            </button>
-          </div>
           
-          {showLogin && (
-            <div className="mt-4">
+          {showLogin ? (
+            <div className="login-form-container">
               <InstanceLogin 
                 instance={instance} 
                 onLoginSuccess={handleLoginSuccess}
               />
+            </div>
+          ) : (
+            <div className="dashlet-footer">
+              <span className="dashlet-url">{instance.url}</span>
+              <button 
+                onClick={() => setShowLogin(true)}
+                className="btn btn-primary"
+              >
+                Login
+              </button>
             </div>
           )}
         </>

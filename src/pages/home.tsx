@@ -1,37 +1,23 @@
-import { useState, useEffect } from "react";
+import GridLayout from "../components/GridLayout";
 import Dashlet from "../components/Dashlet";
 import InstanceManager from "../components/InstanceManager";
-import { XIInstance } from "../api/instances";
 import { useAuth } from "../context/AuthContext";
+import { useInstances } from "../context/InstanceContext";
 
 export default function Home() {
-  const [instances, setInstances] = useState<XIInstance[]>([]);
+  const { instances, addInstance, updateInstance, loading } = useInstances();
   const { authenticatedInstances } = useAuth();
 
-  // Load instances from localStorage
-  useEffect(() => {
-    const savedInstances = localStorage.getItem('nagios-xi-instances');
-    if (savedInstances) {
-      setInstances(JSON.parse(savedInstances));
-    }
-  }, []);
-
-  // Save instances to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('nagios-xi-instances', JSON.stringify(instances));
-  }, [instances]);
-
-  const handleInstanceAdded = (instance: XIInstance) => {
-    setInstances(prev => [...prev, instance]);
-  };
-
-  const handleInstanceUpdated = (updatedInstance: XIInstance) => {
-    setInstances(prev => 
-      prev.map(instance => 
-        instance.id === updatedInstance.id ? updatedInstance : instance
-      )
+  if (loading) {
+    return (
+      <div className="header">
+        <div>
+          <h1>Dashboard Overview</h1>
+          <p className="small">Loading instances...</p>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div>
@@ -44,19 +30,20 @@ export default function Home() {
         </div>
       </div>
 
-      <InstanceManager onInstanceAdded={handleInstanceAdded} />
+      <InstanceManager onInstanceAdded={addInstance} />
 
       {/* Dashlet Grid */}
-      <div className="dashlet-grid">
+      <GridLayout onLayoutChange={undefined}>
         {instances.map((instance) => (
-          <Dashlet 
-            key={instance.id} 
-            instance={instance}
-            isAuthenticated={authenticatedInstances.includes(instance.id)}
-            onInstanceUpdate={handleInstanceUpdated}
-          />
+          <div key={instance.id}>
+            <Dashlet 
+              instance={instance}
+              isAuthenticated={authenticatedInstances.includes(instance.id)}
+              onInstanceUpdate={updateInstance}
+            />
+          </div>
         ))}
-      </div>
+      </GridLayout>
     </div>
   );
 }

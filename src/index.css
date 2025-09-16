@@ -492,3 +492,236 @@ kbd {
   color: var(--crit);
   font-style: italic;
 }
+
+/* Add these styles for the grid layout */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+
+.react-grid-item.resizing {
+  z-index: 1;
+  will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(59, 130, 246, 0.2);
+  opacity: 0.5;
+  transition-duration: 100ms;
+  z-index: 2;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+
+/* Add these styles to fix dashlet sizing */
+.react-grid-item {
+  height: auto !important;
+}
+
+.react-grid-item > div {
+  height: 100%;
+}
+
+/* Dashlet card adjustments */
+.card {
+  min-height: 360px; /* Increased minimum height */
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+}
+
+.dashlet-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Adjust the grid layout for better spacing */
+.react-grid-layout {
+  margin-top: 20px;
+}
+
+/* Status grid adjustments */
+.status-grid {
+  grid-template-columns: repeat(4, 1fr) !important; /* 4 columns instead of 3 */
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.status-item {
+  padding: 15px;
+}
+
+.status-item .value {
+  font-size: 1.8rem; /* Larger values */
+}
+
+/* Weather dashlet improvements */
+.weather-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.weather-item {
+  padding: 12px 8px;
+}
+
+/* Header adjustments for better spacing */
+.dashlet-header {
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Footer adjustments */
+.dashlet-footer {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+
+/* Make sure all content fits well */
+.nagios-status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.system-info {
+  margin-bottom: 15px;
+}
+
+/* Button adjustments */
+.btn {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* Ensure text doesn't overflow */
+.dashlet-purpose, .dashlet-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Loading states */
+.loading, .error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .status-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .weather-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .card {
+    min-height: 320px;
+  }
+}
+
+/* Add these styles for better login form integration */
+.login-form-container {
+  padding: 20px 0;
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-form h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  color: var(--txt);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.form-group input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--txt);
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.login-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.login-actions button {
+  flex: 1;
+}
+
+.login-error {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: var(--crit);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+/* Animation for smooth appearance */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-form-container {
+  animation: slideIn 0.3s ease;
+}

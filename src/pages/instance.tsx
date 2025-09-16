@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useInstances } from "../context/InstanceContext";
 import WeatherDashlet from "../components/WeatherDashlet";
 import NagiosXIStatus from "../components/NagiosXIStatus";
 import InstanceLogin from "../components/InstanceLogin";
@@ -8,16 +9,8 @@ import InstanceLogin from "../components/InstanceLogin";
 export default function Instance() {
   const { id } = useParams<{ id: string }>();
   const { authenticatedInstances } = useAuth();
-  const [instances, setInstances] = useState<any[]>([]);
+  const { instances, updateInstance } = useInstances();
   const [showLogin, setShowLogin] = useState(false);
-
-  // Load instances from localStorage
-  useEffect(() => {
-    const savedInstances = localStorage.getItem('nagios-xi-instances');
-    if (savedInstances) {
-      setInstances(JSON.parse(savedInstances));
-    }
-  }, []);
 
   const instance = instances.find(inst => inst.id === id);
   
@@ -28,16 +21,11 @@ export default function Instance() {
   const isAuthenticated = authenticatedInstances.includes(instance.id);
 
   const handleLoginSuccess = (updatedInstance: any) => {
-    // Update the instance in the local state
-    setInstances(prev => 
-      prev.map(inst => 
-        inst.id === updatedInstance.id ? updatedInstance : inst
-      )
-    );
+    updateInstance(updatedInstance);
     setShowLogin(false);
   };
 
-  // Get coordinates for weather (in a real app, you'd store this with each instance)
+  // Get coordinates for weather
   const getCoordinatesFromLocation = (location: string) => {
     const coordinateMap: Record<string, {lat: number, lon: number}> = {
       "New York": {lat: 40.7128, lon: -74.0060},

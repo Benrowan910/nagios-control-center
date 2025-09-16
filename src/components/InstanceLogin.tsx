@@ -6,9 +6,10 @@ import { useAuth } from '../context/AuthContext';
 interface InstanceLoginProps {
   instance: XIInstance;
   onLoginSuccess: (instance: XIInstance) => void;
+  onCancel?: () => void;
 }
 
-export default function InstanceLogin({ instance, onLoginSuccess }: InstanceLoginProps) {
+export default function InstanceLogin({ instance, onLoginSuccess, onCancel }: InstanceLoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -45,39 +46,53 @@ export default function InstanceLogin({ instance, onLoginSuccess }: InstanceLogi
   };
 
   return (
-    <div className="card">
-      <h3>Login to {instance.nickname || instance.name}</h3>
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label htmlFor="username" className="block mb-1">Username</label>
+    <div className="login-form">
+      <h4>Login to {instance.nickname || instance.name}</h4>
+      
+      {error && <div className="login-error">{error}</div>}
+      
+      <form onSubmit={handleLogin} className="login-form-fields">
+        <div className="form-group">
+          <label htmlFor="username">Username</label>
           <input
             type="text"
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="w-full"
           />
         </div>
-        <div>
-          <label htmlFor="password" className="block mb-1">Password</label>
+        
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
           <input
             type="password"
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full"
           />
         </div>
-        {error && <div className="error">{error}</div>}
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          className="btn btn-primary w-full"
-        >
-          {isLoading ? 'Logging in...' : 'Login'}
-        </button>
+        
+        <div className="login-actions">
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="btn btn-primary"
+          >
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
+          
+          {onCancel && (
+            <button 
+              type="button"
+              onClick={onCancel}
+              className="btn"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );
