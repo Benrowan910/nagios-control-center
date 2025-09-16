@@ -6,16 +6,35 @@ interface NagiosXIStatusProps {
   instance: XIInstance;
 }
 
+interface HostWithServices {
+  host: HostStatus;
+  services: ServiceStatus[];
+}
+
 export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [hostStatus, setHostStatus] = useState<HostStatus[]>([]);
   const [serviceStatus, setServiceStatus] = useState<ServiceStatus[]>([]);
+  const [hostsWithServices, setHostsWithServices] = useState<HostWithServices[]>([]);
   const [systemInfoLoading, setSystemInfoLoading] = useState(true);
   const [hostStatusLoading, setHostStatusLoading] = useState(true);
   const [serviceStatusLoading, setServiceStatusLoading] = useState(true);
   const [systemInfoError, setSystemInfoError] = useState<string | null>(null);
   const [hostStatusError, setHostStatusError] = useState<string | null>(null);
   const [serviceStatusError, setServiceStatusError] = useState<string | null>(null);
+  const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
+  const [checkInProgress, setCheckInProgress] = useState<{ [key: string]: boolean }>({});
+
+  // Group services by host
+  useEffect(() => {
+    if (hostStatus.length > 0 && serviceStatus.length > 0) {
+      const grouped: HostWithServices[] = hostStatus.map(host => ({
+        host,
+        services: serviceStatus.filter(service => service.host_name === host.host_name)
+      }));
+      setHostsWithServices(grouped);
+    }
+  }, [hostStatus, serviceStatus]);
 
   useEffect(() => {
     const fetchSystemInfo = async () => {
@@ -37,21 +56,35 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
     }
   }, [instance]);
 
-  useEffect(() => {
-    const fetchHostStatus = async () => {
-      try {
-        setHostStatusLoading(true);
-        const hosts = await NagiosXIService.getHostStatus(instance);
-        setHostStatus(hosts);
-        setHostStatusError(null);
-      } catch (err) {
-        setHostStatusError("Failed to fetch host status");
-        console.error("Error fetching host status:", err);
-      } finally {
-        setHostStatusLoading(false);
-      }
-    };
+  const fetchHostStatus = async () => {
+    try {
+      setHostStatusLoading(true);
+      const hosts = await NagiosXIService.getHostStatus(instance);
+      setHostStatus(hosts);
+      setHostStatusError(null);
+    } catch (err) {
+      setHostStatusError("Failed to fetch host status");
+      console.error("Error fetching host status:", err);
+    } finally {
+      setHostStatusLoading(false);
+    }
+  };
 
+  const fetchServiceStatus = async () => {
+    try {
+      setServiceStatusLoading(true);
+      const services = await NagiosXIService.getServiceStatus(instance);
+      setServiceStatus(services);
+      setServiceStatusError(null);
+    } catch (err) {
+      setServiceStatusError("Failed to fetch service status");
+      console.error("Error fetching service status:", err);
+    } finally {
+      setServiceStatusLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (instance.authenticated) {
       fetchHostStatus();
       
@@ -61,29 +94,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
     }
   }, [instance]);
 
-  // Add this to your NagiosXIStatus component to debug what's happening
-useEffect(() => {
-  console.log('System Info:', systemInfo);
-  console.log('Host Status:', hostStatus);
-  console.log('Service Status:', serviceStatus);
-  console.log('Instance:', instance);
-}, [systemInfo, hostStatus, serviceStatus, instance]);
-
   useEffect(() => {
-    const fetchServiceStatus = async () => {
-      try {
-        setServiceStatusLoading(true);
-        const services = await NagiosXIService.getServiceStatus(instance);
-        setServiceStatus(services);
-        setServiceStatusError(null);
-      } catch (err) {
-        setServiceStatusError("Failed to fetch service status");
-        console.error("Error fetching service status:", err);
-      } finally {
-        setServiceStatusLoading(false);
-      }
-    };
-
     if (instance.authenticated) {
       fetchServiceStatus();
       
@@ -93,6 +104,91 @@ useEffect(() => {
     }
   }, [instance]);
 
+  const triggerHostCheck = async (hostName: string) => {
+    const key = `host-${hostName}`;
+    setCheckInProgress(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const response = await fetch(
+        `http://${instance.url}/nagiosxi/api/v1/system/massimmediatecheck?apikey=${instance.apiKey}&pretty=1`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `hosts[]=${encodeURIComponent(hostName)}`,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to trigger host check");
+      }
+
+      // Wait a moment for the check to complete, then refresh
+      setTimeout(() => {
+        fetchHostStatus();
+        setCheckInProgress(prev => ({ ...prev, [key]: false }));
+      }, 3000);
+    } catch (error) {
+      console.error("Error triggering host check:", error);
+      setCheckInProgress(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const triggerServiceCheck = async (hostName: string, serviceDescription: string) => {
+    const key = `service-${hostName}-${serviceDescription}`;
+    setCheckInProgress(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const response = await fetch(
+        `http://${instance.url}/nagiosxi/api/v1/system/massimmediatecheck?apikey=${instance.apiKey}&pretty=1`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `services[]=${encodeURIComponent(hostName + "!" + serviceDescription)}`,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to trigger service check");
+      }
+
+      // Wait a moment for the check to complete, then refresh
+      setTimeout(() => {
+        fetchServiceStatus();
+        setCheckInProgress(prev => ({ ...prev, [key]: false }));
+      }, 3000);
+    } catch (error) {
+      console.error("Error triggering service check:", error);
+      setCheckInProgress(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const toggleHostExpansion = (hostId: string) => {
+    const newExpandedHosts = new Set(expandedHosts);
+    if (newExpandedHosts.has(hostId)) {
+      newExpandedHosts.delete(hostId);
+    } else {
+      newExpandedHosts.add(hostId);
+    }
+    setExpandedHosts(newExpandedHosts);
+  };
+
+  const getStatusBadge = (status: string | number) => {
+    let statusClass = "";
+    let statusText = "";
+    
+    if (typeof status === "string") {
+      // Host status
+      statusClass = status === "0" ? "OK" : status === "1" ? "CRITICAL" : "UNKNOWN";
+      statusText = status === "0" ? "UP" : status === "1" ? "DOWN" : "UNREACHABLE";
+    } else {
+      // Service status
+      statusClass = status === 0 ? "OK" : status === 1 ? "WARNING" : status === 2 ? "CRITICAL" : "UNKNOWN";
+      statusText = status === 0 ? "OK" : status === 1 ? "WARNING" : status === 2 ? "CRITICAL" : "UNKNOWN";
+    }
+    
+    return <span className={`badge ${statusClass}`}>{statusText}</span>;
+  };
+
   // Calculate status counts
   const hostStatusCounts = {
     up: hostStatus.filter(h => h.current_state === '0').length,
@@ -101,10 +197,10 @@ useEffect(() => {
   };
 
   const serviceStatusCounts = {
-    ok: serviceStatus.filter(s => s.current_state === 0 || s.current_state === 0).length,
-    warning: serviceStatus.filter(s => s.current_state === 1 || s.current_state === 0).length,
-    critical: serviceStatus.filter(s => s.current_state === 2 || s.current_state === 0).length,
-    unknown: serviceStatus.filter(s => s.current_state === 3 || s.current_state === 0).length
+    ok: serviceStatus.filter(s => s.current_state === 0).length,
+    warning: serviceStatus.filter(s => s.current_state === 1).length,
+    critical: serviceStatus.filter(s => s.current_state === 2).length,
+    unknown: serviceStatus.filter(s => s.current_state === 3).length
   };
 
   return (
@@ -124,9 +220,9 @@ useEffect(() => {
         ) : null}
       </div>
       
-      {/* Status Grid Section */}
-      <div className="status-grid mb-4">
-        {/* Host Status */}
+      {/* Status Summary Section */}
+      <div className="status-grid mb-6">
+        {/* Host Status Summary */}
         <div className="status-item">
           <div className="label">Hosts Up</div>
           {hostStatusLoading ? (
@@ -160,7 +256,7 @@ useEffect(() => {
           )}
         </div>
         
-        {/* Service Status */}
+        {/* Service Status Summary */}
         <div className="status-item">
           <div className="label">Services OK</div>
           {serviceStatusLoading ? (
@@ -204,6 +300,94 @@ useEffect(() => {
             <div className="value UNKNOWN">{serviceStatusCounts.unknown}</div>
           )}
         </div>
+      </div>
+
+      {/* Detailed Hosts and Services Section */}
+      <div className="hosts-services-container">
+        <h3 className="mb-4">Hosts and Services</h3>
+        
+        {hostStatusLoading || serviceStatusLoading ? (
+          <div className="loading">Loading hosts and services...</div>
+        ) : hostStatusError || serviceStatusError ? (
+          <div className="error">
+            {hostStatusError || serviceStatusError}
+          </div>
+        ) : hostsWithServices.length === 0 ? (
+          <div className="empty-state">No hosts or services found</div>
+        ) : (
+          <div className="hosts-list">
+            {hostsWithServices.map(({ host, services }) => {
+              const hostCheckKey = `host-${host.host_name}`;
+              const isHostCheckInProgress = checkInProgress[hostCheckKey];
+              
+              return (
+                <div key={host.host_object_id} className="host-card">
+                  <div 
+                    className="host-header"
+                    onClick={() => toggleHostExpansion(host.host_object_id)}
+                  >
+                    <div className="host-name">
+                      <span className="toggle-icon">
+                        {expandedHosts.has(host.host_object_id) ? '▼' : '►'}
+                      </span>
+                      {host.host_name} ({host.address})
+                    </div>
+                    <div className="host-status">
+                      {getStatusBadge(host.current_state)}
+                      <span className="services-count">
+                        {services.length} service{services.length !== 1 ? 's' : ''}
+                      </span>
+                      <button 
+                        className="btn btn-sm btn-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          triggerHostCheck(host.host_name);
+                        }}
+                        disabled={isHostCheckInProgress}
+                      >
+                        {isHostCheckInProgress ? 'Checking...' : 'Check Host'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {expandedHosts.has(host.host_object_id) && (
+                    <div className="services-list">
+                      {services.length === 0 ? (
+                        <div className="empty-service">No services found for this host</div>
+                      ) : (
+                        services.map(service => {
+                          const serviceCheckKey = `service-${service.host_name}-${service.service_description}`;
+                          const isServiceCheckInProgress = checkInProgress[serviceCheckKey];
+                          
+                          return (
+                            <div key={`${service.host_name}-${service.service_description}`} className="service-item">
+                              <div className="service-info">
+                                <div className="service-name">{service.service_description}</div>
+                                <div className="service-status">
+                                  {getStatusBadge(service.current_state)}
+                                  <button 
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() => triggerServiceCheck(service.host_name, service.service_description)}
+                                    disabled={isServiceCheckInProgress}
+                                  >
+                                    {isServiceCheckInProgress ? 'Checking...' : 'Check Service'}
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="service-output">
+                                {service.plugin_output}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

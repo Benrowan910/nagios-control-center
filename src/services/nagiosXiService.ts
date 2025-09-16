@@ -162,4 +162,5 @@ export class NagiosXIService {
       throw error;
     }
   }
+
 }
