@@ -19,6 +19,14 @@ export default function Layout() {
     }
   };
 
+    const getActiveTab = () => {
+    if (location.pathname.startsWith("/nna")) return "nna";
+    if (location.pathname.startsWith("/logserver")) return "logserver";
+    return "xi"; // Default to XI dashboard
+  };
+
+  const activeTab = getActiveTab();
+
   return (
     <div className="layout">
       {/* Sidebar */}
@@ -29,6 +37,12 @@ export default function Layout() {
         <nav className="sidebar-nav">
           <Link to="/" className="nav-link">
             Dashboard
+          </Link>
+          <Link to="/logserver" className={`nav-link ${activeTab === "logserver" ? "active" : ""}`}>
+            Log Server
+          </Link>
+          <Link to="/nna" className={`nav-link ${activeTab === "nna" ? "active" : ""}`}>
+            Network Analyzer
           </Link>
           <Link to="/settings" className="nav-link">
             Settings

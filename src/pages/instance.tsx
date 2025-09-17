@@ -8,7 +8,7 @@ import InstanceLogin from "../components/InstanceLogin";
 import InstanceEditForm from "../components/InstanceEditForm";
 import GridLayout from "../components/GridLayout";
 import DashboardControls from "../controls/DashboardControls";
-import { XIInstance } from "../api/instances";
+import { NInstance } from "../api/instances";
 
 // Define types for coordinates
 interface Coordinates {
@@ -69,7 +69,7 @@ export default function Instance() {
   };
 
   // Function to create dashlet components
-  const createDashletComponent = (dashletType: string, instance: XIInstance, coordinates?: Coordinates): JSX.Element => {
+  const createDashletComponent = (dashletType: string, instance: NInstance, coordinates?: Coordinates): JSX.Element => {
     switch (dashletType) {
       case 'instance-details':
         return (
@@ -153,12 +153,12 @@ export default function Instance() {
 
   const isAuthenticated = authenticatedInstances.includes(instance.id);
 
-  const handleLoginSuccess = (updatedInstance: XIInstance) => {
+  const handleLoginSuccess = (updatedInstance: NInstance) => {
     updateInstance(updatedInstance);
     setShowLogin(false);
   };
 
-  const handleEditSave = (updatedInstance: XIInstance) => {
+  const handleEditSave = (updatedInstance: NInstance) => {
     updateInstance(updatedInstance);
     setEditing(false);
   };

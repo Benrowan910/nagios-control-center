@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { XIInstance } from '../api/instances';
+import { NInstance } from '../api/instances';
 import { getInstances, saveInstance, deleteInstance } from '../utils/db';
 
 interface InstanceContextType {
-  instances: XIInstance[];
-  addInstance: (instance: XIInstance) => void;
-  updateInstance: (instance: XIInstance) => void;
+  instances: NInstance[];
+  addInstance: (instance: NInstance) => void;
+  updateInstance: (instance: NInstance) => void;
   removeInstance: (id: string) => void;
   loading: boolean;
 }
@@ -25,7 +25,7 @@ interface InstanceProviderProps {
 }
 
 export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) => {
-  const [instances, setInstances] = useState<XIInstance[]>([]);
+  const [instances, setInstances] = useState<NInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load instances from IndexedDB on component mount
@@ -46,7 +46,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
     loadInstances();
   }, []);
 
-  const addInstance = async (instance: XIInstance) => {
+  const addInstance = async (instance: NInstance) => {
     try {
       await saveInstance(instance);
       setInstances(prev => [...prev, instance]);
@@ -57,7 +57,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
 
   
 
-  const updateInstance = async (updatedInstance: XIInstance) => {
+  const updateInstance = async (updatedInstance: NInstance) => {
     try {
       await saveInstance(updatedInstance);
       setInstances(prev => 
