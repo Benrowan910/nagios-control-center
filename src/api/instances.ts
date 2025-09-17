@@ -1,4 +1,4 @@
-export type InstanceType = 'xi'| 'ls' | 'na';
+export type InstanceType = 'xi'| 'ls' | 'nna';
 
 export interface NInstance {
   id: string;

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { NInstance } from "../api/instances";
 import InstanceLogin from "./InstanceLogin";
 import NagiosXIStatus from "./NagiosXIStatus";
+import NNAStatus from "./NNAStatus";
 
 interface DashletProps {
   instance: NInstance;
@@ -68,15 +69,16 @@ export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate, o
       <p className="dashlet-purpose">{instance.purpose}</p>
       
       {isAuthenticated ? (
-        <>
-          <NagiosXIStatus instance={instance} />
-          <div className="dashlet-footer">
-            <span className="dashlet-url">{instance.url}</span>
-            <Link to={`/instance/${instance.id}`} className="btn btn-primary">
-              View Details
-            </Link>
-          </div>
-        </>
+      <>
+        {instance.type === 'xi' && <NagiosXIStatus instance={instance} />}
+        {instance.type === 'nna' && <NNAStatus instance={instance} />}
+        <div className="dashlet-footer">
+          <span className="dashlet-url">{instance.url}</span>
+          <Link to={`/instance/${instance.id}`} className="btn btn-primary">
+            View Details
+          </Link>
+        </div>
+      </>
       ) : (
         <>
           <p className="small mb-4">Authentication required to view monitoring data</p>

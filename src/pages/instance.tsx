@@ -9,6 +9,7 @@ import InstanceEditForm from "../components/InstanceEditForm";
 import GridLayout from "../components/GridLayout";
 import DashboardControls from "../controls/DashboardControls";
 import { NInstance } from "../api/instances";
+import NNAStatus from "../components/NNAStatus"
 
 // Define types for coordinates
 interface Coordinates {
@@ -68,28 +69,28 @@ export default function Instance() {
     return coordinateMap[location] || undefined;
   };
 
-  // Function to create dashlet components
-  const createDashletComponent = (dashletType: string, instance: NInstance, coordinates?: Coordinates): JSX.Element => {
-    switch (dashletType) {
-      case 'instance-details':
-        return (
-          <div key="instance-details" className="card">
-            <h3>Instance Details</h3>
-            <p><strong>URL:</strong> {instance.url}</p>
-            <p><strong>Status:</strong> <span className="badge OK">Connected</span></p>
-            <p><strong>API Key:</strong> {instance.apiKey ? '••••••••' : 'Not set'}</p>
-            {instance.purpose && <p><strong>Purpose:</strong> {instance.purpose}</p>}
-            {instance.location && <p><strong>Location:</strong> {instance.location}</p>}
-          </div>
-        );
-      
-      case 'monitoring-overview':
-        return (
-          <div key="monitoring-overview" className="card">
-            <h3>Monitoring Overview</h3>
-            <NagiosXIStatus instance={instance} />
-          </div>
-        );
+const createDashletComponent = (dashletType: string, instance: NInstance, coordinates?: Coordinates): JSX.Element => {
+  switch (dashletType) {
+    case 'instance-details':
+      return (
+        <div key="instance-details" className="card">
+          <h3>Instance Details</h3>
+          <p><strong>URL:</strong> {instance.url}</p>
+          <p><strong>Status:</strong> <span className="badge OK">Connected</span></p>
+          <p><strong>API Key:</strong> {instance.apiKey ? '••••••••' : 'Not set'}</p>
+          {instance.purpose && <p><strong>Purpose:</strong> {instance.purpose}</p>}
+          {instance.location && <p><strong>Location:</strong> {instance.location}</p>}
+        </div>
+      );
+    
+    case 'monitoring-overview':
+      return (
+        <div key="monitoring-overview" className="card">
+          <h3>Monitoring Overview</h3>
+          {instance.type === 'xi' && <NagiosXIStatus instance={instance} />}
+          {instance.type === 'nna' && <NNAStatus instance={instance} />}
+        </div>
+      );
       
       case 'weather':
         return coordinates ? (

@@ -112,7 +112,7 @@ static async authenticateWithStoredCredentials(instance: any): Promise<boolean> 
     throw new Error('Not authenticated');
     }
 
-      const url = `https://${instance.url}/nagiosxi/api/v1/system/info?apikey=${instance.apiKey}`;
+      const url = `http://${instance.url}/nagiosxi/api/v1/system/info?apikey=${instance.apiKey}`;
       const data = await this.makeApiRequest(url);
       
       // Handle different possible response formats
@@ -139,7 +139,7 @@ static async authenticateWithStoredCredentials(instance: any): Promise<boolean> 
       throw new Error('Not authenticated');
     }
 
-      const url = `https://${instance.url}/nagiosxi/api/v1/objects/hoststatus?apikey=${instance.apiKey}`;
+      const url = `http://${instance.url}/nagiosxi/api/v1/objects/hoststatus?apikey=${instance.apiKey}`;
       const data = await this.makeApiRequest(url);
       
       // Handle different possible response formats
@@ -165,7 +165,7 @@ static async authenticateWithStoredCredentials(instance: any): Promise<boolean> 
     if (!isAuthenticated) {
       throw new Error('Not authenticated');
     }
-      const url = `https://${instance.url}/nagiosxi/api/v1/objects/servicestatus?apikey=${instance.apiKey}`;
+      const url = `http://${instance.url}/nagiosxi/api/v1/objects/servicestatus?apikey=${instance.apiKey}`;
       const data = await this.makeApiRequest(url);
       
       // Handle different possible response formats

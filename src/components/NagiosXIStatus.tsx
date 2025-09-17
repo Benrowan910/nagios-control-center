@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { XIInstance } from "../api/instances";
+import { NInstance } from "../api/instances";
 import { NagiosXIService, HostStatus, ServiceStatus, SystemInfo } from "../services/nagiosXiService";
 
 interface NagiosXIStatusProps {
-  instance: XIInstance;
+  instance: NInstance;
 }
 
 interface HostWithServices {

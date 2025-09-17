@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import type { XIInstance } from "../api/instances";
+import type { NInstance } from "../api/instances";
 import { NagiosXIService, HostStatus } from "../services/nagiosXiService";
 
 interface Props {
-  instance: XIInstance;
+  instance: NInstance;
 }
 
 export default function InstanceDashboard({ instance }: Props) {
