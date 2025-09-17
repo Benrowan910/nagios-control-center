@@ -5,6 +5,17 @@ import InstanceLogin from "./InstanceLogin";
 import NagiosXIStatus from "./NagiosXIStatus";
 import NNAStatus from "./NNAStatus";
 
+// types/dashlet.ts
+export interface DashletConfig {
+  id: string;
+  name: string;
+  type: 'xi' | 'nna' | 'ls';
+  component: React.ComponentType<any>;
+  defaultSize: { w: number; h: number };
+  requiredProps: string[];
+}
+
+
 interface DashletProps {
   instance: NInstance;
   isAuthenticated: boolean;

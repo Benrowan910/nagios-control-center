@@ -11,6 +11,7 @@ import NNA from "./pages/NNA"
 import "./index.css"
 import LogServerDashboard from "./pages/LS";
 import NetworkAnalyzerDashboard from "./pages/NNA";
+import DashletCreator from "./pages/creator";
 
 export default function DashboardApp() {
   return (
@@ -23,7 +24,7 @@ export default function DashboardApp() {
                 <Route index element={<Home />} />
                 <Route path="logserver" element={<LogServerDashboard/>}/>
                 <Route path="nna" element={<NetworkAnalyzerDashboard/>}/>
-
+                <Route path="dashlet-creator" element={<DashletCreator/>}/> {/* New route */}
                 <Route path="instance/:id" element={<Instance />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
