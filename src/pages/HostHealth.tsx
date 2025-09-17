@@ -3,10 +3,8 @@ import type { XIInstance } from "../api/instances";
 import type { HostStatus } from "../services/nagiosXiService";
 import { NagiosXIService } from "../services/nagiosXiService";
 import { PieChart, Pie, Cell, Tooltip, Legend, LabelList } from "recharts";
-
-interface Props {
-  instance: XIInstance;
-}
+import { useAuth } from "../context/AuthContext";
+import { useInstances } from "../context/InstanceContext";
 
 type HostState = 0 | 1 | 2 | 3;
 
@@ -24,94 +22,192 @@ const COLORS: Record<HostState, string> = {
   3: "#64748b", // gray
 };
 
-export default function HostHealth({ instance }: Props) {
-  const [hosts, setHosts] = useState<HostStatus[]>([]);
-  const [loading, setLoading] = useState(true);
+function isXIInstance(x: any): x is XIInstance {
+  return x && typeof x === "object" && typeof x.url === "string" && typeof x.apiKey === "string";
+}
+
+interface Props {
+  /** Optional: if provided, locks the view to this XI and hides the dropdown */
+  instance?: XIInstance;
+}
+
+export default function HostHealth({ instance: forcedInstance }: Props) {
+  const { authenticatedInstances } = useAuth();
+  const { getInstanceById, getInstanceByUrl } = useInstances();
+
+  const authInstances: XIInstance[] = useMemo(() => {
+    const resolved: XIInstance[] = [];
+    for (const item of authenticatedInstances ?? []) {
+      if (isXIInstance(item)) resolved.push(item);
+      else if (typeof item === "string") {
+        const found = getInstanceById(item) ?? getInstanceByUrl(item);
+        if (found) resolved.push(found);
+      }
+    }
+    const seen = new Set<string>();
+    return resolved.filter((i) => {
+      const key = String(i.id ?? i.url);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [authenticatedInstances, getInstanceById, getInstanceByUrl]);
+
+  const [selectedKey, setSelectedKey] = useState<string>(
+    forcedInstance ? String(forcedInstance.id ?? forcedInstance.url) : "all"
+  );
+
+  const [hostsByInstance, setHostsByInstance] = useState<Record<string, HostStatus[]>>({});
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchKey = useMemo(
-    () =>
-      `${instance?.id ?? instance?.name ?? instance?.url}|${String(
-        instance?.apiKey ?? ""
-      )}`,
-    [instance?.id, instance?.name, instance?.url, instance?.apiKey]
+  const instances: XIInstance[] = useMemo(
+    () => (forcedInstance ? [forcedInstance] : authInstances),
+    [forcedInstance, authInstances]
   );
 
   useEffect(() => {
+    if (forcedInstance) {
+      const key = String(forcedInstance.id ?? forcedInstance.url);
+      setSelectedKey(key);
+      return;
+    }
+    if (instances.length === 0) {
+      setSelectedKey("all");
+      return;
+    }
+    if (selectedKey !== "all" && !instances.find((i) => String(i.id ?? i.url) === selectedKey)) {
+      setSelectedKey("all");
+    }
+  }, [forcedInstance, instances, selectedKey]);
+
+  useEffect(() => {
+    if (instances.length === 0) return;
     const ac = new AbortController();
     (async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await NagiosXIService.getHostStatus(instance, {
-          signal: ac.signal,
-        });
-        setHosts(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
-        setError(err?.message ?? "Failed to fetch host data");
+
+        if (selectedKey === "all" && !forcedInstance) {
+          const results = await Promise.allSettled(
+            instances.map(async (inst) => {
+              const data = await NagiosXIService.getHostStatus(inst, { signal: ac.signal });
+              return [String(inst.id ?? inst.url), Array.isArray(data) ? data : []] as const;
+            })
+          );
+          const next: Record<string, HostStatus[]> = {};
+          for (const r of results) if (r.status === "fulfilled") {
+            const [k, arr] = r.value;
+            next[k] = arr;
+          }
+          setHostsByInstance(next);
+        } else {
+          const target =
+            forcedInstance ??
+            instances.find((i) => String(i.id ?? i.url) === selectedKey) ??
+            instances[0];
+          if (!target) throw new Error("No instance selected");
+          const data = await NagiosXIService.getHostStatus(target, { signal: ac.signal });
+          setHostsByInstance({ [String(target.id ?? target.url)]: Array.isArray(data) ? data : [] });
+        }
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+        setError(e?.message ?? "Failed to fetch host data");
       } finally {
         setLoading(false);
       }
     })();
     return () => ac.abort();
-  }, [fetchKey, instance]);
+  }, [instances, selectedKey, forcedInstance]);
 
-  const counts = useMemo(() => {
+  const { total, counts, pieData, title } = useMemo(() => {
     const base: Record<HostState, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
-    for (const h of hosts) {
-      const s = Number((h as any).current_state) as HostState;
-      if (s === 0 || s === 1 || s === 2 || s === 3) base[s] += 1;
-      else base[3] += 1;
+    let ttl = 0;
+
+    const selectedInstances =
+      forcedInstance
+        ? [forcedInstance]
+        : selectedKey === "all"
+          ? instances
+          : instances.filter((i) => String(i.id ?? i.url) === selectedKey);
+
+    for (const inst of selectedInstances) {
+      const key = String(inst.id ?? inst.url);
+      const arr = hostsByInstance[key] ?? [];
+      ttl += arr.length;
+      for (const h of arr) {
+        const s = Number((h as any).current_state) as HostState;
+        if (s === 0 || s === 1 || s === 2 || s === 3) base[s] += 1;
+        else base[3] += 1;
+      }
     }
-    return base;
-  }, [hosts]);
 
-  const total = hosts.length;
+    const data = (Object.keys(base) as unknown as HostState[]).map((k) => {
+      const value = base[k];
+      const pct = ttl > 0 ? Math.round((value / ttl) * 100) : 0;
+      return {
+        name: STATE_LABEL[k],
+        value,
+        pct,
+        state: k,
+        label: value > 0 ? `${STATE_LABEL[k]} ${pct}%` : "",
+      };
+    });
 
-  // Build pie data; set label to "" for zero values so LabelList won't render it.
-  const pieData = (Object.keys(counts) as unknown as HostState[]).map((k) => {
-    const value = counts[k];
-    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-    return {
-      name: STATE_LABEL[k],
-      value,
-      state: k,
-      pct,
-      label: value > 0 ? `${STATE_LABEL[k]} ${pct}%` : "",
-    };
-  });
+    const t = forcedInstance
+      ? forcedInstance.name ?? "XI"
+      : selectedKey === "all"
+        ? `All XIs (${instances.length})`
+        : (selectedInstances[0]?.name ?? "XI");
+
+    return { total: ttl, counts: base, pieData: data, title: t };
+  }, [hostsByInstance, instances, selectedKey, forcedInstance]);
+
+  const showSelector = !forcedInstance;
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">
-          {instance?.name ?? "XI – Host Health"}
-        </h1>
-        <div className="text-sm text-gray-500">Total hosts: {total}</div>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold">{title} – Host Health</h1>
+          <div className="text-sm text-gray-500">Total hosts: {total}</div>
+        </div>
+
+        {showSelector && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-400">Instance:</label>
+            <select
+              className="rounded-md border border-slate-300 bg-white !text-black dark:bg-white dark:!text-black px-2 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ color: "#000", backgroundColor: "#fff" }}   // hard fallback (overrides plugin/inheritance)
+              value={selectedKey}
+              onChange={(e) => setSelectedKey(e.target.value)}
+              disabled={instances.length === 0}
+            >
+              <option className="text-black" value="all">All XIs</option>
+              {instances.map((i) => {
+                const key = String(i.id ?? i.url);
+                return (
+                  <option className="text-black" key={key} value={key}>
+                    {i.name ?? key}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
       </div>
 
-      {loading && (
-        <div className="mt-6 animate-pulse text-gray-600">
-          Loading host health…
-        </div>
-      )}
-
+      {loading && <div className="mt-6 animate-pulse text-gray-600">Loading…</div>}
       {!loading && error && (
-        <div className="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-red-800">
-          {error}
-        </div>
+        <div className="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-red-800">{error}</div>
       )}
 
       {!loading && !error && total > 0 && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mt-6">
-          {/* Fixed-size chart to guarantee visibility */}
           <div className="col-span-1 md:col-span-2 rounded-2xl border p-4 shadow-sm">
             <div className="text-sm font-semibold mb-2">Overall Status</div>
-            <div
-              className="border rounded-md"
-              style={{ width: 560, height: 340, overflow: "hidden" }}
-            >
+            <div className="border rounded-md" style={{ width: 560, height: 340, overflow: "hidden" }}>
               <PieChart width={560} height={340}>
                 <Pie
                   data={pieData}
@@ -122,21 +218,19 @@ export default function HostHealth({ instance }: Props) {
                   innerRadius={90}
                   outerRadius={130}
                   paddingAngle={2}
-                  stroke="#0f172a" // safe on dark backgrounds
+                  stroke="#0f172a"
                   labelLine
                 >
                   {pieData.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={COLORS[entry.state as HostState]} />
                   ))}
-                  {/* Labels OUTSIDE to prevent overlap; empty labels for zero slices */}
                   <LabelList dataKey="label" position="outside" />
                 </Pie>
-                {/* TS-safe tooltip formatter */}
                 <Tooltip
                   formatter={(value: number | string, _name: string, info: any) => {
-                    const pct = info && info.payload ? info.payload.pct : 0;
-                    const name = info && info.payload ? info.payload.name : _name;
-                    return [`${value}`, `${name} (${pct}%)`];
+                    const pct = info?.payload?.pct ?? 0;
+                    const nm = info?.payload?.name ?? _name;
+                    return [`${value}`, `${nm} (${pct}%)`];
                   }}
                 />
                 <Legend verticalAlign="bottom" height={36} />
@@ -144,23 +238,16 @@ export default function HostHealth({ instance }: Props) {
             </div>
           </div>
 
-          {/* Breakdown list */}
           <div className="col-span-1 rounded-2xl border p-4 shadow-sm">
             <div className="text-sm font-semibold mb-2">Breakdown</div>
             <ul className="space-y-2">
               {(Object.keys(counts) as unknown as HostState[]).map((s) => (
                 <li key={s} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-3 w-3 rounded-full"
-                      style={{ backgroundColor: COLORS[s] }}
-                      aria-hidden
-                    />
+                    <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[s] }} aria-hidden />
                     <span className="text-sm">{STATE_LABEL[s]}</span>
                   </div>
-                  <span className="tabular-nums text-sm font-medium">
-                    {counts[s]}
-                  </span>
+                  <span className="tabular-nums text-sm font-medium">{counts[s]}</span>
                 </li>
               ))}
             </ul>
@@ -169,7 +256,7 @@ export default function HostHealth({ instance }: Props) {
       )}
 
       {!loading && !error && total === 0 && (
-        <div className="mt-6 text-gray-600">No hosts found for this instance.</div>
+        <div className="mt-6 text-gray-600">No hosts found for selected scope.</div>
       )}
     </div>
   );
