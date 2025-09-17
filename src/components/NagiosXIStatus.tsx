@@ -189,6 +189,37 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
     return <span className={`badge ${statusClass}`}>{statusText}</span>;
   };
 
+  const getServiceBadge = (status: string | number) => {
+    const s = parseInt(status as string, 10); // normalize to number
+
+    let statusClass = "";
+    let statusText = "";
+
+    switch (s) {
+      case 0:
+        statusClass = "OK";
+        statusText = "OK";
+        break;
+      case 1:
+        statusClass = "WARNING";
+        statusText = "WARNING";
+        break;
+      case 2:
+        statusClass = "CRITICAL";
+        statusText = "CRITICAL";
+        break;
+      case 3:
+        statusClass = "UNKNOWN";
+        statusText = "UNKNOWN";
+        break;
+      default:
+        statusClass = "UNKNOWN";
+        statusText = "UNKNOWN";
+    }
+  
+    return <span className={`badge ${statusClass}`}>{statusText}</span>;
+  };
+
   // Calculate status counts
   const hostStatusCounts = {
     up: hostStatus.filter(h => h.current_state === '0').length,
@@ -364,7 +395,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
                               <div className="service-info">
                                 <div className="service-name">{service.service_description}</div>
                                 <div className="service-status">
-                                  {getStatusBadge(service.current_state)}
+                                  {getServiceBadge(service.current_state)}
                                   <button 
                                     className="btn btn-sm btn-secondary"
                                     onClick={() => triggerServiceCheck(service.host_name, service.service_description)}
