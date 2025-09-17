@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">nagios-control-center-mobile</string>
+    <string name="title_activity_main">nagios-control-center-mobile</string>
+    <string name="package_name">com.ncc.app</string>
+    <string name="custom_url_scheme">com.ncc.app</string>
+</resources>

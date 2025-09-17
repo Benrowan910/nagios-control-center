@@ -8,18 +8,58 @@ interface DashletProps {
   instance: XIInstance;
   isAuthenticated: boolean;
   onInstanceUpdate: (instance: XIInstance) => void;
+  onInstanceDelete: (instanceId: string) => void;
 }
 
-export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate }: DashletProps) {
+export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate, onInstanceDelete }: DashletProps) {
   const [showLogin, setShowLogin] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleLoginSuccess = (updatedInstance: XIInstance) => {
     onInstanceUpdate(updatedInstance);
     setShowLogin(false);
   };
 
+  const handleDelete = () => {
+    onInstanceDelete(instance.id);
+    setShowDeleteConfirm(false);
+  };
+
   return (
-    <div className="card">
+    <div className="card dashlet">
+      {/* Delete button */}
+      <button 
+        className="dashlet-delete-btn"
+        onClick={() => setShowDeleteConfirm(true)}
+        aria-label="Delete instance"
+      >
+        ×
+      </button>
+      
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="delete-confirm-overlay">
+          <div className="delete-confirm-modal">
+            <h3>Delete Instance</h3>
+            <p>Are you sure you want to delete "{instance.nickname || instance.name}"?</p>
+            <div className="delete-confirm-actions">
+              <button 
+                onClick={handleDelete}
+                className="btn btn-danger"
+              >
+                Yes, Delete
+              </button>
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                className="btn"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="dashlet-header">
         <h3>{instance.nickname || instance.name}</h3>
         <span className={`status-dot ${isAuthenticated ? 'OK' : 'CRITICAL'}`}></span>

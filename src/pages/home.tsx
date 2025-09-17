@@ -1,36 +1,15 @@
-import { useState, useEffect } from "react";
+import GridLayout from "../components/GridLayout";
 import Dashlet from "../components/Dashlet";
 import InstanceManager from "../components/InstanceManager";
-import { XIInstance } from "../api/instances";
 import { useAuth } from "../context/AuthContext";
+import { useInstances } from "../context/InstanceContext";
 
 export default function Home() {
-  const [instances, setInstances] = useState<XIInstance[]>([]);
+  const { instances, addInstance, updateInstance, removeInstance } = useInstances();
   const { authenticatedInstances } = useAuth();
 
-  // Load instances from localStorage
-  useEffect(() => {
-    const savedInstances = localStorage.getItem('nagios-xi-instances');
-    if (savedInstances) {
-      setInstances(JSON.parse(savedInstances));
-    }
-  }, []);
-
-  // Save instances to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('nagios-xi-instances', JSON.stringify(instances));
-  }, [instances]);
-
-  const handleInstanceAdded = (instance: XIInstance) => {
-    setInstances(prev => [...prev, instance]);
-  };
-
-  const handleInstanceUpdated = (updatedInstance: XIInstance) => {
-    setInstances(prev => 
-      prev.map(instance => 
-        instance.id === updatedInstance.id ? updatedInstance : instance
-      )
-    );
+  const handleInstanceDelete = (instanceId: string) => {
+    removeInstance(instanceId);
   };
 
   return (
@@ -44,19 +23,21 @@ export default function Home() {
         </div>
       </div>
 
-      <InstanceManager onInstanceAdded={handleInstanceAdded} />
+      <InstanceManager onInstanceAdded={addInstance} />
 
       {/* Dashlet Grid */}
-      <div className="dashlet-grid">
+      <GridLayout onLayoutChange={undefined}>
         {instances.map((instance) => (
-          <Dashlet 
-            key={instance.id} 
-            instance={instance}
-            isAuthenticated={authenticatedInstances.includes(instance.id)}
-            onInstanceUpdate={handleInstanceUpdated}
-          />
+          <div key={instance.id}>
+            <Dashlet 
+              instance={instance}
+              isAuthenticated={authenticatedInstances.includes(instance.id)}
+              onInstanceUpdate={updateInstance}
+              onInstanceDelete={handleInstanceDelete}
+            />
+          </div>
         ))}
-      </div>
+      </GridLayout>
     </div>
   );
 }

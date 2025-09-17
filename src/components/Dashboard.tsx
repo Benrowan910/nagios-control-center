@@ -18,6 +18,8 @@ export default function Dashboard() {
         {INSTANCES.map((inst) => (
           <Dashlet key={inst.id} instance={inst} isAuthenticated={false} onInstanceUpdate={function (instance: XIInstance): void {
             throw new Error("Function not implemented.");
+          } } onInstanceDelete={function (instanceId: string): void {
+            throw new Error("Function not implemented.");
           } } />
         ))}
       </div>

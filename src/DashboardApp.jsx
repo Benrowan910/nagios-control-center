@@ -5,21 +5,24 @@ import Settings from "./pages/settings";
 import Layout from "./Layout";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
+import { InstanceProvider } from "./context/InstanceContext";
 import "./index.css"
 
 export default function DashboardApp() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="instance/:id" element={<Instance />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <InstanceProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Home />} />
+                <Route path="instance/:id" element={<Instance />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </InstanceProvider>
       </AuthProvider>
     </ThemeProvider>
   );
