@@ -5,6 +5,7 @@ import { NagiosXIService } from "../services/nagiosXiService";
 import { PieChart, Pie, Cell, Tooltip, Legend, LabelList } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import { useInstances } from "../context/InstanceContext";
+import { useTheme } from "../context/ThemeContext";
 
 type HostState = 0 | 1 | 2 | 3;
 
@@ -15,26 +16,33 @@ const STATE_LABEL: Record<HostState, string> = {
   3: "UNKNOWN",
 };
 
-const COLORS: Record<HostState, string> = {
-  0: "#22c55e", // green
-  1: "#ef4444", // red
-  2: "#f59e0b", // amber
-  3: "#64748b", // gray
-};
-
+// TS guard
 function isXIInstance(x: any): x is XIInstance {
   return x && typeof x === "object" && typeof x.url === "string" && typeof x.apiKey === "string";
 }
 
 interface Props {
-  /** Optional: if provided, locks the view to this XI and hides the dropdown */
+  /** Optional: lock to one instance and hide selector */
   instance?: XIInstance;
 }
 
 export default function HostHealth({ instance: forcedInstance }: Props) {
+  const { theme } = useTheme();
   const { authenticatedInstances } = useAuth();
   const { getInstanceById, getInstanceByUrl } = useInstances();
 
+  // Build CSS colors from theme (stored as "r g b")
+  const COLORS: Record<HostState, string> = useMemo(
+    () => ({
+      0: `rgb(${theme.success})`,   // UP
+      1: `rgb(${theme.error})`,     // DOWN
+      2: `rgb(${theme.warning})`,   // UNREACHABLE
+      3: `rgb(${theme.secondary})`, // UNKNOWN
+    }),
+    [theme.success, theme.error, theme.warning, theme.secondary]
+  );
+
+  // Resolve authenticated entries to full objects
   const authInstances: XIInstance[] = useMemo(() => {
     const resolved: XIInstance[] = [];
     for (const item of authenticatedInstances ?? []) {
@@ -53,10 +61,12 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
     });
   }, [authenticatedInstances, getInstanceById, getInstanceByUrl]);
 
+  // Selector state
   const [selectedKey, setSelectedKey] = useState<string>(
     forcedInstance ? String(forcedInstance.id ?? forcedInstance.url) : "all"
   );
 
+  // Data state
   const [hostsByInstance, setHostsByInstance] = useState<Record<string, HostStatus[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +76,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
     [forcedInstance, authInstances]
   );
 
+  // Keep selection valid
   useEffect(() => {
     if (forcedInstance) {
       const key = String(forcedInstance.id ?? forcedInstance.url);
@@ -81,9 +92,12 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
     }
   }, [forcedInstance, instances, selectedKey]);
 
+  // Fetch hosts based on selection
   useEffect(() => {
     if (instances.length === 0) return;
+
     const ac = new AbortController();
+
     (async () => {
       try {
         setLoading(true);
@@ -97,9 +111,11 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
             })
           );
           const next: Record<string, HostStatus[]> = {};
-          for (const r of results) if (r.status === "fulfilled") {
-            const [k, arr] = r.value;
-            next[k] = arr;
+          for (const r of results) {
+            if (r.status === "fulfilled") {
+              const [k, arr] = r.value;
+              next[k] = arr;
+            }
           }
           setHostsByInstance(next);
         } else {
@@ -112,15 +128,14 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
           setHostsByInstance({ [String(target.id ?? target.url)]: Array.isArray(data) ? data : [] });
         }
       } catch (e: any) {
-        if (e?.name === "AbortError") return;
         setError(e?.message ?? "Failed to fetch host data");
       } finally {
         setLoading(false);
       }
     })();
-    return () => ac.abort();
   }, [instances, selectedKey, forcedInstance]);
 
+  // Aggregate counts
   const { total, counts, pieData, title } = useMemo(() => {
     const base: Record<HostState, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
     let ttl = 0;
@@ -179,7 +194,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
             <label className="text-sm text-gray-400">Instance:</label>
             <select
               className="rounded-md border border-slate-300 bg-white !text-black dark:bg-white dark:!text-black px-2 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{ color: "#000", backgroundColor: "#fff" }}   // hard fallback (overrides plugin/inheritance)
+              style={{ color: "#000", backgroundColor: "#fff" }}
               value={selectedKey}
               onChange={(e) => setSelectedKey(e.target.value)}
               disabled={instances.length === 0}
@@ -205,6 +220,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
 
       {!loading && !error && total > 0 && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mt-6">
+          {/* Chart */}
           <div className="col-span-1 md:col-span-2 rounded-2xl border p-4 shadow-sm">
             <div className="text-sm font-semibold mb-2">Overall Status</div>
             <div className="border rounded-md" style={{ width: 560, height: 340, overflow: "hidden" }}>
@@ -238,6 +254,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
             </div>
           </div>
 
+          {/* Breakdown */}
           <div className="col-span-1 rounded-2xl border p-4 shadow-sm">
             <div className="text-sm font-semibold mb-2">Breakdown</div>
             <ul className="space-y-2">

@@ -5,6 +5,7 @@ import { NagiosXIService } from "../services/nagiosXiService";
 import { PieChart, Pie, Cell, Tooltip, Legend, LabelList } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import { useInstances } from "../context/InstanceContext";
+import { useTheme } from "../context/ThemeContext";
 
 type ServiceState = 0 | 1 | 2 | 3; // 0 OK, 1 WARN, 2 CRIT, 3 UNK
 
@@ -15,27 +16,32 @@ const STATE_LABEL: Record<ServiceState, string> = {
   3: "UNKNOWN",
 };
 
-const COLORS: Record<ServiceState, string> = {
-  0: "#22c55e", // green
-  1: "#f59e0b", // amber
-  2: "#ef4444", // red
-  3: "#64748b", // gray
-};
-
 function isXIInstance(x: any): x is XIInstance {
   return x && typeof x === "object" && typeof x.url === "string" && typeof x.apiKey === "string";
 }
 
 interface Props {
-  /** Optional: if provided, locks the page to this XI and hides the dropdown */
+  /** Optional: lock to one instance and hide selector */
   instance?: XIInstance;
 }
 
 export default function ServiceHealth({ instance: forcedInstance }: Props) {
+  const { theme } = useTheme();
   const { authenticatedInstances } = useAuth();
   const { getInstanceById, getInstanceByUrl } = useInstances();
 
-  // Resolve authenticated entries to full XIInstance objects
+  // Theme-driven colors
+  const COLORS: Record<ServiceState, string> = useMemo(
+    () => ({
+      0: `rgb(${theme.success})`,   // OK
+      1: `rgb(${theme.warning})`,   // WARNING
+      2: `rgb(${theme.error})`,     // CRITICAL
+      3: `rgb(${theme.secondary})`, // UNKNOWN
+    }),
+    [theme.success, theme.warning, theme.error, theme.secondary]
+  );
+
+  // Resolve instances
   const authInstances: XIInstance[] = useMemo(() => {
     const resolved: XIInstance[] = [];
     for (const item of authenticatedInstances ?? []) {
@@ -58,7 +64,6 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
     forcedInstance ? String(forcedInstance.id ?? forcedInstance.url) : "all"
   );
 
-  // Map of instanceKey -> services
   const [servicesByInstance, setServicesByInstance] = useState<Record<string, ServiceStatus[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +73,7 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
     [forcedInstance, authInstances]
   );
 
-  // Keep selectedKey valid
+  // Keep selection valid
   useEffect(() => {
     if (forcedInstance) {
       const key = String(forcedInstance.id ?? forcedInstance.url);
@@ -84,10 +89,12 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
     }
   }, [forcedInstance, instances, selectedKey]);
 
-  // Fetch service status for selection
+  // Fetch services
   useEffect(() => {
     if (instances.length === 0) return;
+
     const ac = new AbortController();
+
     (async () => {
       try {
         setLoading(true);
@@ -118,16 +125,14 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
           setServicesByInstance({ [String(target.id ?? target.url)]: Array.isArray(data) ? data : [] });
         }
       } catch (e: any) {
-        if (e?.name === "AbortError") return;
         setError(e?.message ?? "Failed to fetch service data");
       } finally {
         setLoading(false);
       }
     })();
-    return () => ac.abort();
   }, [instances, selectedKey, forcedInstance]);
 
-  // Aggregate counts
+  // Aggregate
   const { total, counts, pieData, title } = useMemo(() => {
     const base: Record<ServiceState, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
     let ttl = 0;
@@ -212,7 +217,7 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
 
       {!loading && !error && total > 0 && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mt-6">
-          {/* Pie chart */}
+          {/* Chart */}
           <div className="col-span-1 md:col-span-2 rounded-2xl border p-4 shadow-sm">
             <div className="text-sm font-semibold mb-2">Overall Service Status</div>
             <div className="border rounded-md" style={{ width: 560, height: 340, overflow: "hidden" }}>
