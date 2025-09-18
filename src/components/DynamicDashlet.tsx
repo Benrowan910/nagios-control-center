@@ -1,9 +1,9 @@
-// components/DynamicDashlet.tsx
+import React, { useState, useEffect } from 'react';
 import { dashletRegistry } from '../utils/dashletRegistry';
 
 interface DynamicDashletProps {
   dashletId: string;
-  instance: any; // Your instance object
+  instance: any;
 }
 
 export default function DynamicDashlet({ dashletId, instance }: DynamicDashletProps) {
@@ -12,7 +12,18 @@ export default function DynamicDashlet({ dashletId, instance }: DynamicDashletPr
   useEffect(() => {
     const dashletConfig = dashletRegistry.getDashlet(dashletId);
     if (dashletConfig) {
-      setDashletComponent(() => dashletConfig.component);
+      // Since we changed DashletConfig to have 'code' instead of 'component',
+      // we need to compile the code here
+      try {
+        const componentFunc = new Function('React', 'props', `
+          ${dashletConfig.code}
+          return WeatherDashlet(props);
+        `);
+        const CompiledComponent = componentFunc(React, { instance });
+        setDashletComponent(() => CompiledComponent);
+      } catch (error) {
+        console.error('Error compiling dashlet:', error);
+      }
     }
   }, [dashletId]);
   

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from "../context/ThemeContext";
+import { dashletRegistry } from '../utils/dashletRegistry';
 
 // Default templates for each dashlet type
 const DEFAULT_TEMPLATES = {
@@ -77,13 +78,12 @@ export default function DashletCreator() {
   const [error, setError] = useState<string | null>(null);
   const [savedDashlets, setSavedDashlets] = useState<string[]>([]);
 
-  // Load saved dashlets from localStorage on component mount
   useEffect(() => {
-    const saved = localStorage.getItem('savedDashlets');
-    if (saved) {
-      setSavedDashlets(JSON.parse(saved));
-    }
-  }, []);
+    // Load saved dashlets from registry
+    dashletRegistry.loadFromStorage();
+    const saved = dashletRegistry.getDashletsByType(dashletType);
+    setSavedDashlets(saved.map(d => d.name));
+  }, [dashletType]);
 
   // Update code when dashlet type changes
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function DashletCreator() {
     }
   }, [code]);
 
-  const handleSave = () => {
+const handleSave = () => {
     if (!dashletName.trim()) {
       setError('Please provide a name for your dashlet');
       return;
@@ -159,30 +159,30 @@ export default function DashletCreator() {
     }
 
     try {
-
-        
-      // Create a blob with the dashlet code
-      const blob = new Blob([code], { type: 'text/javascript' });
-      const url = URL.createObjectURL(blob);
+      // Register the dashlet
+      const dashletId = `${dashletType}-${dashletName.toLowerCase().replace(/\s+/g, '-')}`;
       
-      // Create a download link
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${dashletName}.jsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Ensure the code uses the correct function name
+      let cleanedCode = code;
+      if (!cleanedCode.includes('function DashletComponent')) {
+        // If the code doesn't use the expected function name, modify it
+        cleanedCode = code.replace(/export\s+default\s+function\s+(\w+)/, 'function DashletComponent');
+      }
+      dashletRegistry.register({
+        id: dashletId,
+        name: dashletName,
+        type: dashletType as 'xi' | 'nna' | 'ls',
+        code: cleanedCode,
+        defaultSize: { w: 4, h: 2 }
+      });
       
-      // Save to localStorage
+      // Update saved dashlets list
       const newSavedDashlets = [...savedDashlets, dashletName];
       setSavedDashlets(newSavedDashlets);
-      localStorage.setItem('savedDashlets', JSON.stringify(newSavedDashlets));
       
       setError(null);
       alert('Dashlet saved successfully!');
     } catch (err) {
-      // Handle the 'unknown' error type
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(`Failed to save dashlet: ${errorMessage}`);
     }

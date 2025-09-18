@@ -37,13 +37,13 @@ export default function Layout() {
         </div>
         <nav className="sidebar-nav">
           <Link to="/" className="nav-link">
-            Dashboard
+            Nagios XI
           </Link>
           <Link to="/logserver" className={`nav-link ${activeTab === "logserver" ? "active" : ""}`}>
-            Log Server
+            Nagios Log Server
           </Link>
           <Link to="/nna" className={`nav-link ${activeTab === "nna" ? "active" : ""}`}>
-            Network Analyzer
+            Nagios Network Analyzer
           </Link>
           <Link to="/dashlet-creator" className={`nav-link ${activeTab === "dashlet-creator" ? "active" : ""}`}>
             Dashlet Creator

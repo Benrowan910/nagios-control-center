@@ -12,6 +12,7 @@ import "./index.css"
 import LogServerDashboard from "./pages/LS";
 import NetworkAnalyzerDashboard from "./pages/NNA";
 import DashletCreator from "./pages/creator";
+import CustomDashletManager from "./components/CustomDashletManager";
 
 export default function DashboardApp() {
   return (
