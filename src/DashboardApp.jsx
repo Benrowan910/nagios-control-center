@@ -3,7 +3,8 @@ import Home from "./pages/home";
 import Instance from "./pages/instance";
 import Settings from "./pages/settings";
 import Layout from "./Layout";
-import HostHealthRoute from "./routes/HostHealthRoute";
+import HostHealth from "./pages/HostHealth";
+import ServiceHealthRoute from "./routes/ServiceHealthRoute"; // <-- add
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 import { InstanceProvider } from "./context/InstanceContext";
@@ -20,7 +21,8 @@ export default function DashboardApp() {
                 <Route index element={<Home />} />
                 <Route path="instance/:id" element={<Instance />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="hostHealth" element={<HostHealthRoute />} /> {/* <- use wrapper */}
+                <Route path="hostHealth" element={<HostHealth />} />
+                <Route path="serviceHealth" element={<ServiceHealthRoute />} /> {/* NEW */}
               </Route>
             </Routes>
           </BrowserRouter>
