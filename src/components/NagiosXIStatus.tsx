@@ -182,6 +182,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
       statusText = status === "0" ? "UP" : status === "1" ? "DOWN" : "UNREACHABLE";
     } else {
       // Service status
+      // never hits this because the numbers are strings too, e.g. "0"
       statusClass = status === 0 ? "OK" : status === 1 ? "WARNING" : status === 2 ? "CRITICAL" : "UNKNOWN";
       statusText = status === 0 ? "OK" : status === 1 ? "WARNING" : status === 2 ? "CRITICAL" : "UNKNOWN";
     }
