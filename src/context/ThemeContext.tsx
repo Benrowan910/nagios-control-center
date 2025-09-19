@@ -15,7 +15,7 @@ export interface Theme {
 
 interface ThemeContextType {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  setTheme: React.Dispatch<React.SetStateAction<Theme>>; // accepts object or updater fn
   resetTheme: () => void;
 }
 
@@ -39,35 +39,43 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+}
+
+
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // Load theme from localStorage if available
-    const savedTheme = localStorage.getItem('app-theme');
+    const savedTheme = localStorage.getItem("app-theme");
     return savedTheme ? JSON.parse(savedTheme) : defaultTheme;
   });
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem('app-theme', JSON.stringify(newTheme));
+  
+
+  const setTheme: React.Dispatch<React.SetStateAction<Theme>> = (newTheme) => {
+    setThemeState((prev) => {
+      const updatedTheme =
+        typeof newTheme === "function" ? newTheme(prev) : newTheme;
+      localStorage.setItem("app-theme", JSON.stringify(updatedTheme));
+      return updatedTheme;
+    });
   };
 
   const resetTheme = () => {
     setTheme(defaultTheme);
   };
 
-  // Push CSS vars to document root
   useEffect(() => {
-    document.documentElement.style.setProperty("--color-primary", theme.primary);
-    document.documentElement.style.setProperty("--color-secondary", theme.secondary);
-    document.documentElement.style.setProperty("--color-tertiary", theme.tertiary);
-    document.documentElement.style.setProperty("--color-background", theme.background);
-    document.documentElement.style.setProperty("--color-card-background", theme.cardBackground);
-    document.documentElement.style.setProperty("--color-text", theme.text);
-    document.documentElement.style.setProperty("--color-border", theme.border);
-    document.documentElement.style.setProperty("--color-success", theme.success);
-    document.documentElement.style.setProperty("--color-warning", theme.warning);
-    document.documentElement.style.setProperty("--color-error", theme.error);
+    for (const [key, value] of Object.entries(theme)) {
+      document.documentElement.style.setProperty(`--color-${key}`, value);
+    }
   }, [theme]);
+
+  
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resetTheme }}>
@@ -76,10 +84,3 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   );
 }
 
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-}

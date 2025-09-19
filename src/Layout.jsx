@@ -33,6 +33,9 @@ export default function Layout() {
           <Link to="/settings" className="nav-link">
             Settings
           </Link>
+          <Link to="trends" className="nav-link">
+            Trends
+          </Link>
         </nav>
         <div className="sidebar-footer">
           <div className="session-status">

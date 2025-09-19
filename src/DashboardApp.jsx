@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/home";
 import Instance from "./pages/instance";
 import Settings from "./pages/settings";
+import Trends from "./pages/trends";
 import Layout from "./Layout";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
@@ -19,6 +20,7 @@ export default function DashboardApp() {
                 <Route index element={<Home />} />
                 <Route path="instance/:id" element={<Instance />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="trends" element={<Trends />} />
               </Route>
             </Routes>
           </BrowserRouter>
