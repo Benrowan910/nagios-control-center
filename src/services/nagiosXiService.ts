@@ -129,7 +129,7 @@ static async authenticateWithStoredCredentials(instance: any): Promise<boolean> 
     }
   }
 
-  static async getHostStatus(instance: any): Promise<HostStatus[]> {
+  static async getHostStatus(instance: any, p0: { signal: AbortSignal; }): Promise<HostStatus[]> {
     try {
 
             // Try to authenticate with stored credentials first

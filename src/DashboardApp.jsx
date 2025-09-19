@@ -3,12 +3,14 @@ import Home from "./pages/home";
 import Instance from "./pages/instance";
 import Settings from "./pages/settings";
 import Layout from "./Layout";
+import HostHealth from "./pages/HostHealth";
+import ServiceHealthRoute from "./routes/ServiceHealthRoute"; // <-- add
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 import { InstanceProvider } from "./context/InstanceContext";
 import LS from "./pages/LS"
 import NNA from "./pages/NNA"
-import "./index.css"
+import "./index.css";
 import LogServerDashboard from "./pages/LS";
 import NetworkAnalyzerDashboard from "./pages/NNA";
 import DashletCreator from "./pages/creator";
@@ -28,6 +30,8 @@ export default function DashboardApp() {
                 <Route path="dashlet-creator" element={<DashletCreator/>}/> {/* New route */}
                 <Route path="instance/:id" element={<Instance />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="hostHealth" element={<HostHealth />} />
+                <Route path="serviceHealth" element={<ServiceHealthRoute />} /> {/* NEW */}
               </Route>
             </Routes>
           </BrowserRouter>

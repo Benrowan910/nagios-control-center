@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { NInstance } from '../api/instances';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import type { NInstance } from '../api/instances';
 import { getInstances, saveInstance, deleteInstance } from '../utils/db';
 
 interface InstanceContextType {
@@ -8,6 +8,11 @@ interface InstanceContextType {
   updateInstance: (instance: NInstance) => void;
   removeInstance: (id: string) => void;
   loading: boolean;
+  addInstance: (instance: XIInstance) => Promise<void>;
+  updateInstance: (instance: XIInstance) => Promise<void>;
+  removeInstance: (id: string) => Promise<void>;
+  getInstanceById: (id: string | number) => XIInstance | undefined;
+  getInstanceByUrl: (url: string) => XIInstance | undefined;
 }
 
 const InstanceContext = createContext<InstanceContextType | undefined>(undefined);
@@ -34,7 +39,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
       try {
         setLoading(true);
         const savedInstances = await getInstances();
-        setInstances(savedInstances);
+        setInstances(savedInstances ?? []);
       } catch (e) {
         console.error("Error loading instances from DB:", e);
         setInstances([]);
@@ -60,8 +65,8 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
   const updateInstance = async (updatedInstance: NInstance) => {
     try {
       await saveInstance(updatedInstance);
-      setInstances(prev => 
-        prev.map(instance => 
+      setInstances(prev =>
+        prev.map(instance =>
           instance.id === updatedInstance.id ? updatedInstance : instance
         )
       );
@@ -79,8 +84,24 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
     }
   };
 
+  const getInstanceById = (id: string | number) =>
+    instances.find(i => String(i.id) === String(id));
+
+  const getInstanceByUrl = (url: string) =>
+    instances.find(i => i.url === url);
+
+  const value = useMemo<InstanceContextType>(() => ({
+    instances,
+    loading,
+    addInstance,
+    updateInstance,
+    removeInstance,
+    getInstanceById,
+    getInstanceByUrl,
+  }), [instances, loading]);
+
   return (
-    <InstanceContext.Provider value={{ instances, addInstance, updateInstance, removeInstance, loading }}>
+    <InstanceContext.Provider value={value}>
       {children}
     </InstanceContext.Provider>
   );

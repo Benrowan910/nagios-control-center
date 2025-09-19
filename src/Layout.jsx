@@ -48,6 +48,12 @@ export default function Layout() {
           <Link to="/dashlet-creator" className={`nav-link ${activeTab === "dashlet-creator" ? "active" : ""}`}>
             Dashlet Creator
           </Link>
+          <Link to="/hostHealth" className="nav-link">
+            Host Health
+          </Link>
+          <Link to="/serviceHealth" className="nav-link">
+            Service Health
+          </Link>
           <Link to="/settings" className="nav-link">
             Settings
           </Link>
