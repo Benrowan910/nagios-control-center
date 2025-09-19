@@ -21,6 +21,82 @@ interface Props {
 const LS_SELECTED = "serviceHealth:selectedKey";
 const LS_REFRESH = "serviceHealth:refreshMs";
 
+// --- Normalizers & utils ---
+function normalizeService(item: any) {
+  const state =
+    item.current_state ??
+    item.service_current_state ??
+    item.status?.current_state ??
+    item.status?.service_current_state ??
+    3;
+
+  const host =
+    item.host_name ??
+    item.host ??
+    item.status?.host_name ??
+    item.status?.host ??
+    "";
+
+  const svc =
+    item.service_description ??
+    item.description ??
+    item.status?.service_description ??
+    item.status?.description ??
+    "";
+
+  const out =
+    item.plugin_output ??
+    item.output ??
+    item.status?.plugin_output ??
+    item.status?.output ??
+    "";
+
+  const lastRaw =
+    item.last_check ??
+    item.last_check_time ??
+    item.status?.last_check ??
+    item.status?.last_check_time ??
+    0;
+
+  let last_check: string | number = lastRaw;
+  if (Number.isFinite(Number(lastRaw)) && Number(lastRaw) > 0) {
+    let ms = Number(lastRaw);
+    if (ms < 1e12) ms *= 1000; // seconds -> ms
+    last_check = new Date(ms).toISOString();
+  }
+
+  return {
+    ...item,
+    current_state: Number(state),
+    host_name: host,
+    service_description: svc,
+    plugin_output: out,
+    last_check,
+  } as ServiceStatus & {
+    current_state: number | ServiceState;
+    host_name: string;
+    service_description: string;
+    plugin_output: string;
+    last_check: string | number;
+  };
+}
+
+const fmtDate = (v: string | number) => {
+  if (typeof v === "number") {
+    const ms = v > 1e12 ? v : v * 1000;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+  }
+  const n = Number(v);
+  if (Number.isFinite(n) && n > 0) {
+    const ms = n > 1e12 ? n : n * 1000;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? v : d.toLocaleString();
+  }
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+};
+
 export default function ServiceHealth({ instance: forcedInstance }: Props) {
   const { theme } = useTheme();
   const { authenticatedInstances } = useAuth();
@@ -36,6 +112,7 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
     [theme.success, theme.warning, theme.error, theme.secondary]
   );
 
+  // Resolve authenticated entries to full XIInstance objects
   const authInstances: XIInstance[] = useMemo(() => {
     const resolved: XIInstance[] = [];
     for (const item of authenticatedInstances ?? []) {
@@ -54,6 +131,7 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
     });
   }, [authenticatedInstances, getInstanceById, getInstanceByUrl]);
 
+  // Persisted selection + refresh controls
   const initialSelected =
     forcedInstance ? String(forcedInstance.id ?? forcedInstance.url) : localStorage.getItem(LS_SELECTED) ?? "all";
   const [selectedKey, setSelectedKey] = useState<string>(initialSelected);
@@ -108,7 +186,8 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
         const results = await Promise.allSettled(
           instances.map(async (inst) => {
             const data = await NagiosXIService.getServiceStatus(inst, { signal: ac.signal });
-            return [String(inst.id ?? inst.url), Array.isArray(data) ? data : []] as const;
+            const arr = Array.isArray(data) ? data.map(normalizeService) : [];
+            return [String(inst.id ?? inst.url), arr] as const;
           })
         );
         const next: Record<string, ServiceStatus[]> = {};
@@ -119,7 +198,9 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
           forcedInstance ?? instances.find((i) => String(i.id ?? i.url) === selectedKey) ?? instances[0];
         if (!target) throw new Error("No instance selected");
         const data = await NagiosXIService.getServiceStatus(target, { signal: ac.signal });
-        setServicesByInstance({ [String(target.id ?? target.url)]: Array.isArray(data) ? data : [] });
+        setServicesByInstance({
+          [String(target.id ?? target.url)]: Array.isArray(data) ? data.map(normalizeService) : [],
+        });
       }
     } catch (e: any) {
       if (e?.name !== "AbortError") setError(e?.message ?? "Failed to fetch service data");
@@ -147,8 +228,8 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
       const arr = servicesByInstance[key] ?? [];
       ttl += arr.length;
       const local: Counts = { 0: 0, 1: 0, 2: 0, 3: 0 };
-      for (const s of arr) {
-        const st = Number((s as any).current_state) as ServiceState;
+      for (const svc of arr) {
+        const st = Number((svc as any).current_state) as ServiceState;
         if (st === 0 || st === 1 || st === 2 || st === 3) {
           base[st] += 1;
           local[st] += 1;
@@ -160,13 +241,26 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
       perInst[key] = { name: inst.name ?? key, counts: local, total: arr.length };
     }
 
-    const data = (Object.keys(base) as unknown as ServiceState[]).map((k) => {
+    // IMPORTANT: coerce key strings -> numbers so pieData.state is numeric
+    const data = (Object.keys(base) as string[]).map((kStr) => {
+      const k = Number(kStr) as ServiceState;
       const value = base[k];
       const pct = ttl > 0 ? Math.round((value / ttl) * 100) : 0;
-      return { name: STATE_LABEL[k], value, pct, state: k, label: value > 0 ? `${STATE_LABEL[k]} ${pct}%` : "" };
+      return {
+        name: STATE_LABEL[k],
+        value,
+        pct,
+        state: k, // numeric
+        label: value > 0 ? `${STATE_LABEL[k]} ${pct}%` : "",
+      };
     });
 
-    const t = forcedInstance ? forcedInstance.name ?? "XI" : selectedKey === "all" ? `All XIs (${instances.length})` : selectedInstances[0]?.name ?? "XI";
+    const t = forcedInstance
+      ? forcedInstance.name ?? "XI"
+      : selectedKey === "all"
+      ? `All XIs (${instances.length})`
+      : selectedInstances[0]?.name ?? "XI";
+
     return { total: ttl, pieData: data, title: t, perInstance: perInst };
   }, [servicesByInstance, instances, selectedKey, forcedInstance]);
 
@@ -188,11 +282,6 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
     }
     return rows;
   }, [servicesByInstance, instances, selectedKey, forcedInstance, activeFilter]);
-
-  const fmtDate = (isoOrUnix: string) => {
-    const d = new Date(isoOrUnix);
-    return isNaN(d.getTime()) ? isoOrUnix : d.toLocaleString();
-  };
 
   const perInstanceRows = useMemo(() => {
     if (forcedInstance || selectedKey !== "all") return [];
@@ -225,7 +314,9 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
                 onChange={(e) => setSelectedKey(e.target.value)}
                 disabled={instances.length === 0}
               >
-                <option className="text-black" value="all">All XIs</option>
+                <option className="text-black" value="all">
+                  All XIs
+                </option>
                 {instances.map((i) => {
                   const key = String(i.id ?? i.url);
                   return (
@@ -239,7 +330,11 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
           )}
 
           <label className="flex items-center gap-2 text-sm text-gray-400">
-            <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+            />
             Auto-refresh
           </label>
 
@@ -277,7 +372,9 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
               <div className="text-xs text-gray-500">
                 {activeFilter == null ? "Click a slice to drill down" : `Filtered: ${STATE_LABEL[activeFilter]}`}
                 {activeFilter != null && (
-                  <button className="ml-3 underline" onClick={() => setActiveFilter(null)}>Clear</button>
+                  <button className="ml-3 underline" onClick={() => setActiveFilter(null)}>
+                    Clear
+                  </button>
                 )}
               </div>
             </div>
@@ -285,7 +382,6 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
             <div className="w-full" style={{ height: 460 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  {/* Robust click handler on the Pie (index -> state) */}
                   <Pie
                     data={pieData}
                     dataKey="value"
@@ -296,8 +392,10 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
                     stroke="#0f172a"
                     labelLine
                     onClick={(_, idx) => {
-                      const st = pieData[idx]?.state as ServiceState | undefined;
-                      if (st !== undefined) toggleFilter(st);
+                      const entry = pieData[idx];
+                      if (!entry || entry.value === 0) return; // ignore empty slices
+                      const st = Number(entry.state) as ServiceState; // ensure numeric
+                      toggleFilter(st);
                     }}
                   >
                     {pieData.map((entry, idx) => (
@@ -346,10 +444,18 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
                   <tr key={r.key} className="border-t border-slate-200/30">
                     <td className="py-2 px-4 text-center">{r.name}</td>
                     <td className="py-2 px-4 tabular-nums text-center">{r.total}</td>
-                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[0] }}>{r.ok}</td>
-                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[1] }}>{r.warn}</td>
-                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[2] }}>{r.crit}</td>
-                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[3] }}>{r.unk}</td>
+                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[0] }}>
+                      {r.ok}
+                    </td>
+                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[1] }}>
+                      {r.warn}
+                    </td>
+                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[2] }}>
+                      {r.crit}
+                    </td>
+                    <td className="py-2 px-4 tabular-nums text-center" style={{ color: COLORS[3] }}>
+                      {r.unk}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -379,18 +485,22 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
                 {filteredRows.map((s, idx) => {
                   const st = Number((s as any).current_state) as ServiceState;
                   return (
-                    <tr key={`${s.host_name}-${s.service_description}-${idx}`} className="border-t border-slate-200/30">
-                      <td className="py-2 pr-4">{s.host_name}</td>
-                      <td className="py-2 pr-4">{s.service_description}</td>
-                      <td className="py-2 pr-4" style={{ color: COLORS[st] }}>{STATE_LABEL[st]}</td>
-                      <td className="py-2 pr-4">{s.plugin_output}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap">{fmtDate(s.last_check)}</td>
+                    <tr key={`${(s as any).host_name}-${(s as any).service_description}-${idx}`} className="border-t border-slate-200/30">
+                      <td className="py-2 pr-4">{(s as any).host_name}</td>
+                      <td className="py-2 pr-4">{(s as any).service_description}</td>
+                      <td className="py-2 pr-4" style={{ color: COLORS[st] }}>
+                        {STATE_LABEL[st]}
+                      </td>
+                      <td className="py-2 pr-4">{(s as any).plugin_output}</td>
+                      <td className="py-2 pr-4 whitespace-nowrap">{fmtDate((s as any).last_check)}</td>
                     </tr>
                   );
                 })}
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td className="py-4 text-gray-500" colSpan={5}>No rows for the current filter.</td>
+                    <td className="py-4 text-gray-500" colSpan={5}>
+                      No rows for the current filter.
+                    </td>
                   </tr>
                 )}
               </tbody>

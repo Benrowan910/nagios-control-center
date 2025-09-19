@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useInstances } from "../context/InstanceContext";
 import { useTheme } from "../context/ThemeContext";
 
-type HostState = 0 | 1 | 2 | 3;
+type HostState = 0 | 1 | 2 | 3; // 0 UP, 1 DOWN, 2 UNREACHABLE, 3 UNKNOWN
 const STATE_LABEL: Record<HostState, string> = { 0: "UP", 1: "DOWN", 2: "UNREACHABLE", 3: "UNKNOWN" };
 
 function isXIInstance(x: any): x is XIInstance {
@@ -21,6 +21,76 @@ interface Props {
 
 const LS_SELECTED = "hostHealth:selectedKey";
 const LS_REFRESH = "hostHealth:refreshMs";
+
+/* -------------------- Normalizers & utils -------------------- */
+function normalizeHost(item: any) {
+  const state =
+    item.current_state ??
+    item.host_current_state ??
+    item.status?.current_state ??
+    item.status?.host_current_state ??
+    3;
+
+  const host =
+    item.host_name ??
+    item.display_name ??
+    item.name ??
+    item.status?.host_name ??
+    item.status?.display_name ??
+    item.status?.name ??
+    "";
+
+  const out =
+    item.output ??
+    item.plugin_output ??
+    item.status?.output ??
+    item.status?.plugin_output ??
+    "";
+
+  const lastRaw =
+    item.last_check ??
+    item.last_check_time ??
+    item.status?.last_check ??
+    item.status?.last_check_time ??
+    0;
+
+  let last_check: string | number = lastRaw;
+  if (Number.isFinite(Number(lastRaw)) && Number(lastRaw) > 0) {
+    let ms = Number(lastRaw);
+    if (ms < 1e12) ms *= 1000; // seconds -> ms
+    last_check = new Date(ms).toISOString();
+  }
+
+  return {
+    ...item,
+    current_state: Number(state),
+    host_name: host,
+    output: out,
+    last_check,
+  } as HostStatus & {
+    current_state: number | HostState;
+    host_name: string;
+    output: string;
+    last_check: string | number;
+  };
+}
+
+const fmtDate = (v: string | number) => {
+  if (typeof v === "number") {
+    const ms = v > 1e12 ? v : v * 1000;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+  }
+  const n = Number(v);
+  if (Number.isFinite(n) && n > 0) {
+    const ms = n > 1e12 ? n : n * 1000;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+  }
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+};
+/* ------------------------------------------------------------- */
 
 export default function HostHealth({ instance: forcedInstance }: Props) {
   const { theme } = useTheme();
@@ -111,7 +181,8 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
         const results = await Promise.allSettled(
           instances.map(async (inst) => {
             const data = await NagiosXIService.getHostStatus(inst, { signal: ac.signal });
-            return [String(inst.id ?? inst.url), Array.isArray(data) ? data : []] as const;
+            const arr = Array.isArray(data) ? data.map(normalizeHost) : [];
+            return [String(inst.id ?? inst.url), arr] as const;
           })
         );
         const next: Record<string, HostStatus[]> = {};
@@ -122,7 +193,9 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
           forcedInstance ?? instances.find((i) => String(i.id ?? i.url) === selectedKey) ?? instances[0];
         if (!target) throw new Error("No instance selected");
         const data = await NagiosXIService.getHostStatus(target, { signal: ac.signal });
-        setHostsByInstance({ [String(target.id ?? target.url)]: Array.isArray(data) ? data : [] });
+        setHostsByInstance({
+          [String(target.id ?? target.url)]: Array.isArray(data) ? data.map(normalizeHost) : [],
+        });
       }
     } catch (e: any) {
       if (e?.name !== "AbortError") setError(e?.message ?? "Failed to fetch host data");
@@ -163,13 +236,26 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
       perInst[key] = { name: inst.name ?? key, counts: local, total: arr.length };
     }
 
-    const data = (Object.keys(base) as unknown as HostState[]).map((k) => {
+    // Make pieData.state numeric (not string) so filtering works
+    const data = (Object.keys(base) as string[]).map((kStr) => {
+      const k = Number(kStr) as HostState;
       const value = base[k];
       const pct = ttl > 0 ? Math.round((value / ttl) * 100) : 0;
-      return { name: STATE_LABEL[k], value, pct, state: k, label: value > 0 ? `${STATE_LABEL[k]} ${pct}%` : "" };
+      return {
+        name: STATE_LABEL[k],
+        value,
+        pct,
+        state: k, // numeric
+        label: value > 0 ? `${STATE_LABEL[k]} ${pct}%` : "",
+      };
     });
 
-    const t = forcedInstance ? forcedInstance.name ?? "XI" : selectedKey === "all" ? `All XIs (${instances.length})` : selectedInstances[0]?.name ?? "XI";
+    const t = forcedInstance
+      ? forcedInstance.name ?? "XI"
+      : selectedKey === "all"
+      ? `All XIs (${instances.length})`
+      : selectedInstances[0]?.name ?? "XI";
+
     return { total: ttl, pieData: data, title: t, perInstance: perInst };
   }, [hostsByInstance, instances, selectedKey, forcedInstance]);
 
@@ -192,11 +278,6 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
     return rows;
   }, [hostsByInstance, instances, selectedKey, forcedInstance, activeFilter]);
 
-  const fmtDate = (isoOrUnix: string) => {
-    const d = new Date(isoOrUnix);
-    return isNaN(d.getTime()) ? isoOrUnix : d.toLocaleString();
-  };
-
   // Per-instance rows (All XIs only)
   const perInstanceRows = useMemo(() => {
     if (forcedInstance || selectedKey !== "all") return [];
@@ -215,7 +296,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Top bar: Title + Controls in one row */}
+      {/* Top bar: Title + Controls */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold">{title} – Host Health</h1>
         <div className="flex items-center gap-3 flex-wrap">
@@ -272,7 +353,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
 
       <div className="text-sm text-gray-400 mt-1">Total hosts: {total}</div>
 
-      {/* Main grid (BIG chart) */}
+      {/* Main chart */}
       {!loading && !error && total > 0 && (
         <div className="mt-4">
           <div className="rounded-2xl border p-5 shadow-sm">
@@ -289,7 +370,6 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
             <div className="w-full" style={{ height: 460 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  {/* Robust click handler on the Pie (index -> state) */}
                   <Pie
                     data={pieData}
                     dataKey="value"
@@ -300,8 +380,10 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
                     stroke="#0f172a"
                     labelLine
                     onClick={(_, idx) => {
-                      const st = pieData[idx]?.state as HostState | undefined;
-                      if (st !== undefined) toggleFilter(st);
+                      const entry = pieData[idx];
+                      if (!entry || entry.value === 0) return; // ignore empty slices
+                      const st = Number(entry.state) as HostState; // ensure numeric
+                      toggleFilter(st);
                     }}
                   >
                     {pieData.map((entry, idx) => (
@@ -368,6 +450,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
           <div className="text-sm font-semibold mb-3">
             {activeFilter == null ? "All Hosts" : `Hosts – ${STATE_LABEL[activeFilter]}`}
           </div>
+
           <div className="overflow-auto">
             <table className="min-w-[900px] w-full text-sm">
               <thead className="text-left text-gray-500">
@@ -379,10 +462,13 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((h) => {
-                  const s = Number((h as any).current_state) as HostState;
+                {filteredRows.map((h: any, idx: number) => {
+                  const s = Number(h.current_state) as HostState;
                   return (
-                    <tr key={`${h.host_object_id}-${h.host_name}`} className="border-t border-slate-200/30">
+                    <tr
+                      key={`${h.host_object_id ?? h.host_name ?? idx}`}
+                      className="border-t border-slate-200/30"
+                    >
                       <td className="py-2 pr-4">{h.display_name ?? h.host_name}</td>
                       <td className="py-2 pr-4" style={{ color: COLORS[s] }}>{STATE_LABEL[s]}</td>
                       <td className="py-2 pr-4">{h.output}</td>
@@ -390,9 +476,12 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
                     </tr>
                   );
                 })}
+
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td className="py-4 text-gray-500" colSpan={4}>No rows for the current filter.</td>
+                    <td className="py-4 text-gray-500" colSpan={4}>
+                      No rows for the current filter.
+                    </td>
                   </tr>
                 )}
               </tbody>
