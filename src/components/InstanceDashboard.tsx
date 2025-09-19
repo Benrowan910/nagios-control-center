@@ -10,12 +10,13 @@ export default function InstanceDashboard({ instance }: Props) {
   const [hosts, setHosts] = useState<HostStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const ac = new AbortController();
 
   useEffect(() => {
     const fetchHosts = async () => {
       try {
         setLoading(true);
-        const hostData = await NagiosXIService.getHostStatus(instance);
+        const hostData = await NagiosXIService.getHostStatus(instance, {signal: ac.signal});
         setHosts(hostData);
         setError(null);
       } catch (err) {
