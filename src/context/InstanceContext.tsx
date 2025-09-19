@@ -4,15 +4,15 @@ import { getInstances, saveInstance, deleteInstance } from '../utils/db';
 
 interface InstanceContextType {
   instances: NInstance[];
-  addInstance: (instance: NInstance) => void;
-  updateInstance: (instance: NInstance) => void;
-  removeInstance: (id: string) => void;
+  //addInstance: (instance: NInstance) => void;
+  //updateInstance: (instance: NInstance) => void;
+  //removeInstance: (id: string) => void;
   loading: boolean;
-  addInstance: (instance: XIInstance) => Promise<void>;
-  updateInstance: (instance: XIInstance) => Promise<void>;
+  addInstance: (instance: NInstance) => Promise<void>;
+  updateInstance: (instance: NInstance) => Promise<void>;
   removeInstance: (id: string) => Promise<void>;
-  getInstanceById: (id: string | number) => XIInstance | undefined;
-  getInstanceByUrl: (url: string) => XIInstance | undefined;
+  getInstanceById: (id: string | number) => NInstance | undefined;
+  getInstanceByUrl: (url: string) => NInstance | undefined;
 }
 
 const InstanceContext = createContext<InstanceContextType | undefined>(undefined);
