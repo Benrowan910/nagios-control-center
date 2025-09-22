@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
-import type { XIInstance } from "../api/instances";
+import type { NInstance } from "../api/instances";
 import { NagiosXIService, HostStatus } from "../services/nagiosXiService";
 
 interface Props {
-  instance: XIInstance;
+  instance: NInstance;
 }
 
 export default function InstanceDashboard({ instance }: Props) {
   const [hosts, setHosts] = useState<HostStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const ac = new AbortController();
 
   useEffect(() => {
     const fetchHosts = async () => {
       try {
         setLoading(true);
-        const hostData = await NagiosXIService.getHostStatus(instance);
+        const hostData = await NagiosXIService.getHostStatus(instance, {signal: ac.signal});
         setHosts(hostData);
         setError(null);
       } catch (err) {

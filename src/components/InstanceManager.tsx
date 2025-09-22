@@ -1,25 +1,26 @@
 import { useState } from 'react';
-import { XIInstance } from '../api/instances';
+import { NInstance, InstanceType } from '../api/instances';
 import InstanceLogin from './InstanceLogin';
 
 interface InstanceManagerProps {
-  onInstanceAdded: (instance: XIInstance) => void;
+  onInstanceAdded: (instance: NInstance) => void;
 }
 
 export default function InstanceManager({ onInstanceAdded }: InstanceManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newInstance, setNewInstance] = useState<Partial<XIInstance>>({
+  const [newInstance, setNewInstance] = useState<Partial<NInstance>>({
     name: '',
     url: '',
     nickname: '',
     apiKey:'',
     purpose: '',
     location: '',
-    authenticated: false
+    authenticated: false,
+    type: 'xi'
   });
 
   const handleAddInstance = () => {
-    const instance: XIInstance = {
+    const instance: NInstance = {
       id: Date.now().toString(),
       name: newInstance.name || '',
       url: newInstance.url || '',
@@ -27,7 +28,8 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
       nickname: newInstance.nickname,
       purpose: newInstance.purpose,
       location: newInstance.location,
-      authenticated: false
+      authenticated: false,
+      type: newInstance.type || 'xi'
     };
     
     onInstanceAdded(instance);
@@ -39,7 +41,8 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
       apiKey: '',
       purpose: '',
       location: '',
-      authenticated: false
+      authenticated: false,
+      type: 'xi'
     });
   };
 
@@ -50,11 +53,11 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
           onClick={() => setShowAddForm(true)}
           className="btn btn-primary mb-4"
         >
-          Add Nagios XI Instance
+          Add Nagios Instance
         </button>
       ) : (
         <div className="card mb-6">
-          <h3 className="mb-4">Add New Nagios XI Instance</h3>
+          <h3 className="mb-4">Add New Nagios Instance</h3>
           <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block mb-1">Instance Name</label>
@@ -63,7 +66,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
                 id="name"
                 value={newInstance.name}
                 onChange={(e) => setNewInstance({...newInstance, name: e.target.value})}
-                placeholder="Nagios XI - Data Center A"
+                placeholder="Nagios Instance Name"
                 required
                 className="w-full"
               />
@@ -75,9 +78,23 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
                 id="nickname"
                 value={newInstance.nickname || ''}
                 onChange={(e) => setNewInstance({...newInstance, nickname: e.target.value})}
-                placeholder="Prod XI"
+                placeholder="Instance Nickname"
                 className="w-full"
               />
+            </div>
+            <div>
+              <label htmlFor="type" className="block mb-1">Instance Type</label>
+              <select
+                id="type"
+                value={newInstance.type || 'xi'}
+                onChange={(e) => setNewInstance({...newInstance, type: e.target.value as InstanceType})}
+                required
+                className="w-full"
+              >
+                <option value="xi">Nagios XI</option>
+                <option value="nna">Nagios Network Analyzer</option>
+                <option value="ls">Nagios Log Server</option>
+              </select>
             </div>
             <div>
               <label htmlFor="url" className="block mb-1">URL</label>
@@ -92,15 +109,15 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
               />
             </div>
             <div>
-              <label htmlFor="apiKey" className="block mb-1">ApiKEY</label>
+              <label htmlFor="apiKey" className="block mb-1">API Key</label>
               <input
-              type ="apiKey"
-              id="apiKey"
-              value={newInstance.apiKey || ''}
-              onChange={(e) => setNewInstance({...newInstance, apiKey: e.target.value})}
-              placeholder="2130981234098sishjd0"
-              required
-              className="w-full"
+                type="password"
+                id="apiKey"
+                value={newInstance.apiKey || ''}
+                onChange={(e) => setNewInstance({...newInstance, apiKey: e.target.value})}
+                placeholder="Enter API Key"
+                required
+                className="w-full"
               />
             </div>
             <div>
