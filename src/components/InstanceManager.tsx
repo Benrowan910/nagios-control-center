@@ -60,7 +60,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
           <h3 className="mb-4">Add New Nagios Instance</h3>
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block mb-1">Instance Name</label>
+              <label htmlFor="name" className="block mb-1, required">Instance Name</label>
               <input
                 type="text"
                 id="name"
@@ -72,7 +72,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
               />
             </div>
             <div>
-              <label htmlFor="nickname" className="block mb-1">Nickname (Optional)</label>
+              <label htmlFor="nickname" className="block mb-1">Nickname</label>
               <input
                 type="text"
                 id="nickname"
@@ -97,19 +97,19 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
               </select>
             </div>
             <div>
-              <label htmlFor="url" className="block mb-1">URL</label>
+              <label htmlFor="url" className="block mb-1, required">Host Address</label>
               <input
                 type="url"
                 id="url"
                 value={newInstance.url}
                 onChange={(e) => setNewInstance({...newInstance, url: e.target.value})}
-                placeholder="https://nagios.example.com"
+                placeholder="Ex. 192.168.0.100"
                 required
                 className="w-full"
               />
             </div>
             <div>
-              <label htmlFor="apiKey" className="block mb-1">API Key</label>
+              <label htmlFor="apiKey" className="block mb-1, required">API Key</label>
               <input
                 type="password"
                 id="apiKey"
@@ -121,18 +121,18 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
               />
             </div>
             <div>
-              <label htmlFor="purpose" className="block mb-1">Purpose (Optional)</label>
+              <label htmlFor="purpose" className="block mb-1">Purpose</label>
               <input
                 type="text"
                 id="purpose"
                 value={newInstance.purpose || ''}
                 onChange={(e) => setNewInstance({...newInstance, purpose: e.target.value})}
-                placeholder="Monitoring production infrastructure"
+                placeholder="Ex. Monitoring production infrastructure"
                 className="w-full"
               />
             </div>
             <div>
-              <label htmlFor="location" className="block mb-1">Location (Optional)</label>
+              <label htmlFor="location" className="block mb-1">Location</label>
               <input
                 type="text"
                 id="location"

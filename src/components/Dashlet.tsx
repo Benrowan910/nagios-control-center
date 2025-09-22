@@ -71,11 +71,14 @@ export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate, o
           </div>
         </div>
       )}
+
+      
       
       <div className="dashlet-header">
         <h3>{instance.nickname || instance.name}</h3>
         <span className={`status-dot ${isAuthenticated ? 'OK' : 'CRITICAL'}`}></span>
       </div>
+      
       
       <p className="dashlet-purpose">{instance.purpose}</p>
       

@@ -28,7 +28,7 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
       
       <form onSubmit={handleSubmit} className="edit-form">
         <div className="form-group">
-          <label htmlFor="name">Instance Name</label>
+          <label htmlFor="name" className="required">Instance Name</label>
           <input
             type="text"
             id="name"
@@ -39,7 +39,7 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
         </div>
         
         <div className="form-group">
-          <label htmlFor="nickname">Nickname (Optional)</label>
+          <label htmlFor="nickname">Nickname</label>
           <input
             type="text"
             id="nickname"
@@ -49,7 +49,7 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
         </div>
         
         <div className="form-group">
-          <label htmlFor="url">Host Address</label>
+          <label htmlFor="url" className="required">Host Address</label>
           <input
             type="text"
             id="url"
@@ -68,7 +68,7 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
         </div>
         
         <div className="form-group">
-          <label htmlFor="apiKey">API Key</label>
+          <label htmlFor="apiKey" className="required">API Key</label>
           <input
             type="password"
             id="apiKey"
@@ -79,7 +79,7 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
         </div>
         
         <div className="form-group">
-          <label htmlFor="purpose">Purpose (Optional)</label>
+          <label htmlFor="purpose">Purpose</label>
           <input
             type="text"
             id="purpose"
@@ -89,7 +89,7 @@ export default function InstanceEditForm({ instance, onSave, onCancel }: Instanc
         </div>
         
         <div className="form-group">
-          <label htmlFor="location">Location (Optional)</label>
+          <label htmlFor="location">Location</label>
           <input
             type="text"
             id="location"

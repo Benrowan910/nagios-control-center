@@ -52,10 +52,26 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+.required::after {
+  content:" *";
+  color: red;
+
+}
+
 input, select, button, textarea { 
   font: inherit; 
   -webkit-appearance: none;
   border-radius: 0;
+}
+
+select:focus {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+select option {
+  background-color: white;
+  color: black;
 }
 
 /* Prevent zoom on iOS input focus */
@@ -210,6 +226,7 @@ h1 {
 input[type="text"],
 input[type="password"],
 input[type="email"],
+input[type="url"],
 select,
 button,
 textarea {
