@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { NInstance } from '../api/instances';
+import { XIInstance } from '../api/instances';
 import { NagiosXIService } from '../services/nagiosXiService';
-import { NagiosNNAService } from '../services/nagiosNNAService';
 import { useAuth } from '../context/AuthContext';
 
 interface InstanceLoginProps {
-  instance: NInstance;
-  onLoginSuccess: (instance: NInstance) => void;
+  instance: XIInstance;
+  onLoginSuccess: (instance: XIInstance) => void;
   onCancel?: () => void;
 }
 
@@ -54,14 +53,7 @@ export default function InstanceLogin({ instance, onLoginSuccess, onCancel }: In
     setError('');
 
     try {
-      const service = instance.type === 'xi' ? NagiosXIService : NagiosNNAService;
-      let isAuthenticated = false;
-
-      if (instance.type === 'xi') {
-        isAuthenticated = await NagiosXIService.authenticate(instance, username, password);
-      } else if (instance.type === 'nna') {
-        isAuthenticated = await NagiosNNAService.authenticate(instance);
-      }
+      const isAuthenticated = await NagiosXIService.authenticate(instance, storedUsername, storedPassword);
       
       if (isAuthenticated) {
         // Update instance with credentials
@@ -92,13 +84,8 @@ export default function InstanceLogin({ instance, onLoginSuccess, onCancel }: In
     setError('');
 
     try {
-      let isAuthenticated = false;
-
-      if (instance.type === 'xi') {
-        isAuthenticated = await NagiosXIService.authenticate(instance, username, password);
-      } else if (instance.type === 'nna') {
-        isAuthenticated = await NagiosNNAService.authenticate(instance);
-      }      
+      const isAuthenticated = await NagiosXIService.authenticate(instance, username, password);
+      
       if (isAuthenticated) {
         // Store credentials in sessionStorage (encrypted)
         const credentialsKey = `credentials_${instance.id}`;

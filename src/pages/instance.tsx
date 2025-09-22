@@ -8,11 +8,7 @@ import InstanceLogin from "../components/InstanceLogin";
 import InstanceEditForm from "../components/InstanceEditForm";
 import GridLayout from "../components/GridLayout";
 import DashboardControls from "../controls/DashboardControls";
-import { NInstance } from "../api/instances";
-import NNAStatus from "../components/NNAStatus"
-import { dashletRegistry } from '../utils/dashletRegistry';
-import CustomDashlet from '../components/CustomDashlet';
-import CustomDashletManager from '../components/CustomDashletManager';
+import { XIInstance } from "../api/instances";
 
 // Define types for coordinates
 interface Coordinates {
@@ -56,8 +52,6 @@ export default function Instance() {
   const [editing, setEditing] = useState(false);
   const [dashlets, setDashlets] = useState<Dashlet[]>([]);
   const [activeDashletTypes, setActiveDashletTypes] = useState<string[]>([]);
-  const [showDashletManager, setShowDashletManager] = useState(false);
-  const [dashletsUpdated, setDashletsUpdated] = useState(0);
 
   const instance = instances.find(inst => inst.id === id);
   
@@ -74,31 +68,28 @@ export default function Instance() {
     return coordinateMap[location] || undefined;
   };
 
-const createDashletComponent = (dashletType: string, instance: NInstance, coordinates?: Coordinates): JSX.Element => {
-  // Check if this is a custom dashlet
-  if (dashletType.startsWith('custom-')) {
-    return <CustomDashlet key={dashletType} dashletId={dashletType} instance={instance} />;
-  }  switch (dashletType) {
-    case 'instance-details':
-      return (
-        <div key="instance-details" className="card">
-          <h3>Instance Details</h3>
-          <p><strong>URL:</strong> {instance.url}</p>
-          <p><strong>Status:</strong> <span className="badge OK">Connected</span></p>
-          <p><strong>API Key:</strong> {instance.apiKey ? '••••••••' : 'Not set'}</p>
-          {instance.purpose && <p><strong>Purpose:</strong> {instance.purpose}</p>}
-          {instance.location && <p><strong>Location:</strong> {instance.location}</p>}
-        </div>
-      );
-    
-    case 'monitoring-overview':
-      return (
-        <div key="monitoring-overview" className="card">
-          <h3>Monitoring Overview</h3>
-          {instance.type === 'xi' && <NagiosXIStatus instance={instance} />}
-          {instance.type === 'nna' && <NNAStatus instance={instance} />}
-        </div>
-      );
+  // Function to create dashlet components
+  const createDashletComponent = (dashletType: string, instance: XIInstance, coordinates?: Coordinates): JSX.Element => {
+    switch (dashletType) {
+      case 'instance-details':
+        return (
+          <div key="instance-details" className="card">
+            <h3>Instance Details</h3>
+            <p><strong>URL:</strong> {instance.url}</p>
+            <p><strong>Status:</strong> <span className="badge OK">Connected</span></p>
+            <p><strong>API Key:</strong> {instance.apiKey ? '••••••••' : 'Not set'}</p>
+            {instance.purpose && <p><strong>Purpose:</strong> {instance.purpose}</p>}
+            {instance.location && <p><strong>Location:</strong> {instance.location}</p>}
+          </div>
+        );
+      
+      case 'monitoring-overview':
+        return (
+          <div key="monitoring-overview" className="card">
+            <h3>Monitoring Overview</h3>
+            <NagiosXIStatus instance={instance} />
+          </div>
+        );
       
       case 'weather':
         return coordinates ? (
@@ -125,53 +116,36 @@ const createDashletComponent = (dashletType: string, instance: NInstance, coordi
     }
   };
 
-// Initialize dashlets based on instance data
-useEffect(() => {
-  if (instance) {
-    const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
-    
-    // Load saved layout or use default
-    const layoutKey = `instance-${instance.id}-layout`;
-    const savedLayout = localStorage.getItem(layoutKey);
-    let layout: LayoutItem[] = [];
-    
-    if (savedLayout) {
-      layout = JSON.parse(savedLayout);
-    } else {
-      // Load custom dashlets for this instance type
-      const customDashlets = dashletRegistry.getDashletsByType(instance.type);
-      const customDashletItems = customDashlets.map(dashlet => ({
-        i: `custom-${dashlet.id}`,
-        x: 0,
-        y: 0,
-        w: dashlet.defaultSize.w,
-        h: dashlet.defaultSize.h
-      }));
+  // Initialize dashlets based on instance data
+  useEffect(() => {
+    if (instance) {
+      const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
       
-      // Combine with default layout
-      layout = [...DEFAULT_LAYOUT, ...customDashletItems];
+      // Load saved layout or use default
+      const layoutKey = `instance-${instance.id}-layout`;
+      const savedLayout = localStorage.getItem(layoutKey);
+      const layout: LayoutItem[] = savedLayout ? JSON.parse(savedLayout) : DEFAULT_LAYOUT;
+      
+      // Determine which dashlets are active
+      const activeTypes = layout.map((item: LayoutItem) => item.i);
+      setActiveDashletTypes(activeTypes);
+      
+      // Create dashlet components
+      const dashletComponents: Dashlet[] = layout.map((item: LayoutItem) => {
+        const component = createDashletComponent(item.i, instance, coordinates);
+        return {
+          i: item.i,
+          component,
+          x: item.x,
+          y: item.y,
+          w: item.w,
+          h: item.h
+        };
+      });
+      
+      setDashlets(dashletComponents);
     }
-    
-    // Determine which dashlets are active
-    const activeTypes = layout.map((item: LayoutItem) => item.i);
-    setActiveDashletTypes(activeTypes);
-    
-    // Create dashlet components
-    const dashletComponents: Dashlet[] = layout.map((item: LayoutItem) => {
-      const component = createDashletComponent(item.i, instance, coordinates);
-      return {
-        i: item.i,
-        component,
-        x: item.x,
-        y: item.y,
-        w: item.w,
-        h: item.h
-      };
-    });
-    
-    setDashlets(dashletComponents);
-  }
-}, [instance]);
+  }, [instance]);
 
   if (!instance) {
     return <div>Instance not found</div>;
@@ -179,12 +153,12 @@ useEffect(() => {
 
   const isAuthenticated = authenticatedInstances.includes(instance.id);
 
-  const handleLoginSuccess = (updatedInstance: NInstance) => {
+  const handleLoginSuccess = (updatedInstance: XIInstance) => {
     updateInstance(updatedInstance);
     setShowLogin(false);
   };
 
-  const handleEditSave = (updatedInstance: NInstance) => {
+  const handleEditSave = (updatedInstance: XIInstance) => {
     updateInstance(updatedInstance);
     setEditing(false);
   };
@@ -193,38 +167,7 @@ useEffect(() => {
     setEditing(false);
   };
 
-  const handleDashletsUpdated = () => {
-    setDashletsUpdated(prev => prev + 1);
-    if(instance){
-      const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
-    }
-  }
-
-
   const addDashlet = (dashletType: string) => {
-  if (dashletType.startsWith('custom-')) {
-    // Add custom dashlet
-    const dashletId = dashletType.replace('custom-', '');
-    const dashlet = dashletRegistry.getDashlet(dashletId);
-    
-    if (dashlet) {
-      const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
-      
-      const newDashlet: Dashlet = {
-        i: `custom-${dashletId}`,
-        component: createDashletComponent(`custom-${dashletId}`, instance, coordinates),
-        x: 0,
-        y: Math.max(...dashlets.map(d => d.y + d.h), 0),
-        w: dashlet.defaultSize.w,
-        h: dashlet.defaultSize.h
-      };
-      
-      setActiveDashletTypes([...activeDashletTypes, `custom-${dashletId}`]);
-      setDashlets([...dashlets, newDashlet]);
-    } else{
-      console.error(`Dashlet ${dashletId} not found in registry`);
-    }
-  } else {
     const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
     
     // Create new dashlet
@@ -242,9 +185,7 @@ useEffect(() => {
     
     // Add to dashlets array
     setDashlets([...dashlets, newDashlet]);
-  }
-};
-
+  };
 
   const removeDashlet = (dashletType: string) => {
     // Remove from active dashlet types
@@ -268,17 +209,6 @@ useEffect(() => {
   return (
     <div>
       <div className="header">
-        <button 
-          onClick={() => setShowDashletManager(true)}
-          className="btn btn-secondary"
-        >
-          Manage Custom Dashlets
-        </button>
-        <CustomDashletManager
-          isOpen={showDashletManager}
-          onClose={() => setShowDashletManager(false)}
-          onDashletUpdated={handleDashletsUpdated}
-        />
         <div>
           <h1>{instance.nickname || instance.name}</h1>
           <p className="small">{instance.purpose}</p>
@@ -291,10 +221,7 @@ useEffect(() => {
               onAddDashlet={addDashlet}
               onRemoveDashlet={removeDashlet}
               onResetLayout={resetLayout}
-              instanceType={instance.type} // Add this
             />
-
-            
             <button 
               onClick={() => setEditing(true)}
               className="btn btn-secondary"
@@ -334,8 +261,6 @@ useEffect(() => {
             </div>
           )}
         </div>
-
-        
       ) : editing ? (
         <InstanceEditForm 
           instance={instance}
@@ -350,12 +275,7 @@ useEffect(() => {
             </div>
           ))}
         </GridLayout>
-
-        
       )}
     </div>
-
-    
-  
   );
 }

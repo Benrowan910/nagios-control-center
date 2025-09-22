@@ -7,9 +7,6 @@ import { useInstances } from "../context/InstanceContext";
 export default function Home() {
   const { instances, addInstance, updateInstance, removeInstance } = useInstances();
   const { authenticatedInstances } = useAuth();
-  
-  // Filter only XI instances for the home page
-  const xiInstances = instances.filter(inst => inst.type === 'xi');
 
   const handleInstanceDelete = (instanceId: string) => {
     removeInstance(instanceId);
@@ -21,16 +18,16 @@ export default function Home() {
         <div>
           <h1>Dashboard Overview</h1>
           <p className="small">
-            Monitor all your Nagios XI instances from one place
+            Monitor all your Nagios instances from one place
           </p>
         </div>
       </div>
 
       <InstanceManager onInstanceAdded={addInstance} />
 
-      {/* Dashlet Grid - Only show XI instances */}
+      {/* Dashlet Grid */}
       <GridLayout onLayoutChange={undefined}>
-        {xiInstances.map((instance) => (
+        {instances.map((instance) => (
           <div key={instance.id}>
             <Dashlet 
               instance={instance}

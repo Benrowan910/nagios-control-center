@@ -19,15 +19,6 @@ export default function Layout() {
     }
   };
 
-    const getActiveTab = () => {
-    if (location.pathname.startsWith("/nna")) return "nna";
-    if (location.pathname.startsWith("/logserver")) return "logserver";
-    if (location.pathname.startsWith("/creator")) return "dashlet-creator";
-    return "xi"; // Default to XI dashboard
-  };
-
-  const activeTab = getActiveTab();
-
   return (
     <div className="layout">
       {/* Sidebar */}
@@ -37,16 +28,7 @@ export default function Layout() {
         </div>
         <nav className="sidebar-nav">
           <Link to="/" className="nav-link">
-            Nagios XI
-          </Link>
-          <Link to="/logserver" className={`nav-link ${activeTab === "logserver" ? "active" : ""}`}>
-            Nagios Log Server
-          </Link>
-          <Link to="/nna" className={`nav-link ${activeTab === "nna" ? "active" : ""}`}>
-            Nagios Network Analyzer
-          </Link>
-          <Link to="/dashlet-creator" className={`nav-link ${activeTab === "dashlet-creator" ? "active" : ""}`}>
-            Dashlet Creator
+            Dashboard
           </Link>
           <Link to="/hostHealth" className="nav-link">
             Host Health
@@ -70,7 +52,7 @@ export default function Layout() {
           >
             Logout All
           </button>
-          <div>© 2025 Nagios Control Center</div>
+          <div>© 2025 Nagios Fusion Lite</div>
         </div>
       </aside>
 

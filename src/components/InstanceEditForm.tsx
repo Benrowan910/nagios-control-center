@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { NInstance } from "../api/instances";
+import { XIInstance } from "../api/instances";
 
 interface InstanceEditFormProps {
-  instance: NInstance;
-  onSave: (updatedInstance: NInstance) => void;
+  instance: XIInstance;
+  onSave: (updatedInstance: XIInstance) => void;
   onCancel: () => void;
 }
 
 export default function InstanceEditForm({ instance, onSave, onCancel }: InstanceEditFormProps) {
-  const [editedInstance, setEditedInstance] = useState<NInstance>({ ...instance });
+  const [editedInstance, setEditedInstance] = useState<XIInstance>({ ...instance });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(editedInstance);
   };
 
-  const handleChange = (field: keyof NInstance, value: string) => {
+  const handleChange = (field: keyof XIInstance, value: string) => {
     setEditedInstance(prev => ({
       ...prev,
       [field]: value

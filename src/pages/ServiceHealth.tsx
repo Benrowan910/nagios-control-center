@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import type { NInstance } from "../api/instances";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import type { XIInstance } from "../api/instances";
 import type { ServiceStatus } from "../services/nagiosXiService";
 import { NagiosXIService } from "../services/nagiosXiService";
 import { PieChart, Pie, Cell, Tooltip, Legend, LabelList, ResponsiveContainer } from "recharts";
@@ -10,13 +10,12 @@ import { useTheme } from "../context/ThemeContext";
 type ServiceState = 0 | 1 | 2 | 3; // 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN
 const STATE_LABEL: Record<ServiceState, string> = { 0: "OK", 1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN" };
 
-function isXIInstance(x: any): x is NInstance {
+function isXIInstance(x: any): x is XIInstance {
   return x && typeof x === "object" && typeof x.url === "string" && typeof x.apiKey === "string";
 }
 
 interface Props {
-  /** Optional: if provided, locks the page to this XI and hides the dropdown */
-  instance?: NInstance;
+  instance?: XIInstance;
 }
 
 const LS_SELECTED = "serviceHealth:selectedKey";
@@ -114,8 +113,8 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
   );
 
   // Resolve authenticated entries to full XIInstance objects
-  const authInstances: NInstance[] = useMemo(() => {
-    const resolved: NInstance[] = [];
+  const authInstances: XIInstance[] = useMemo(() => {
+    const resolved: XIInstance[] = [];
     for (const item of authenticatedInstances ?? []) {
       if (isXIInstance(item)) resolved.push(item);
       else if (typeof item === "string") {
@@ -145,7 +144,7 @@ export default function ServiceHealth({ instance: forcedInstance }: Props) {
   }, [selectedKey, forcedInstance]);
   useEffect(() => localStorage.setItem(LS_REFRESH, String(refreshMs)), [refreshMs]);
 
-  const instances: NInstance[] = useMemo(
+  const instances: XIInstance[] = useMemo(
     () => (forcedInstance ? [forcedInstance] : authInstances),
     [forcedInstance, authInstances]
   );

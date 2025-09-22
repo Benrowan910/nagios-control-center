@@ -1,25 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { NInstance } from "../api/instances";
+import { XIInstance } from "../api/instances";
 import InstanceLogin from "./InstanceLogin";
 import NagiosXIStatus from "./NagiosXIStatus";
-import NNAStatus from "./NNAStatus";
-
-// types/dashlet.ts
-export interface DashletConfig {
-  id: string;
-  name: string;
-  type: 'xi' | 'nna' | 'ls';
-  component: React.ComponentType<any>;
-  defaultSize: { w: number; h: number };
-  requiredProps: string[];
-}
-
 
 interface DashletProps {
-  instance: NInstance;
+  instance: XIInstance;
   isAuthenticated: boolean;
-  onInstanceUpdate: (instance: NInstance) => void;
+  onInstanceUpdate: (instance: XIInstance) => void;
   onInstanceDelete: (instanceId: string) => void;
 }
 
@@ -27,7 +15,7 @@ export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate, o
   const [showLogin, setShowLogin] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleLoginSuccess = (updatedInstance: NInstance) => {
+  const handleLoginSuccess = (updatedInstance: XIInstance) => {
     onInstanceUpdate(updatedInstance);
     setShowLogin(false);
   };
@@ -80,16 +68,15 @@ export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate, o
       <p className="dashlet-purpose">{instance.purpose}</p>
       
       {isAuthenticated ? (
-      <>
-        {instance.type === 'xi' && <NagiosXIStatus instance={instance} />}
-        {instance.type === 'nna' && <NNAStatus instance={instance} />}
-        <div className="dashlet-footer">
-          <span className="dashlet-url">{instance.url}</span>
-          <Link to={`/instance/${instance.id}`} className="btn btn-primary">
-            View Details
-          </Link>
-        </div>
-      </>
+        <>
+          <NagiosXIStatus instance={instance} />
+          <div className="dashlet-footer">
+            <span className="dashlet-url">{instance.url}</span>
+            <Link to={`/instance/${instance.id}`} className="btn btn-primary">
+              View Details
+            </Link>
+          </div>
+        </>
       ) : (
         <>
           <p className="small mb-4">Authentication required to view monitoring data</p>

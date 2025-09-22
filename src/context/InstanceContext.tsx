@@ -1,18 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import type { NInstance } from '../api/instances';
+import type { XIInstance } from '../api/instances';
 import { getInstances, saveInstance, deleteInstance } from '../utils/db';
 
 interface InstanceContextType {
-  instances: NInstance[];
-  //addInstance: (instance: NInstance) => void;
-  //updateInstance: (instance: NInstance) => void;
-  //removeInstance: (id: string) => void;
+  instances: XIInstance[];
   loading: boolean;
-  addInstance: (instance: NInstance) => Promise<void>;
-  updateInstance: (instance: NInstance) => Promise<void>;
+  addInstance: (instance: XIInstance) => Promise<void>;
+  updateInstance: (instance: XIInstance) => Promise<void>;
   removeInstance: (id: string) => Promise<void>;
-  getInstanceById: (id: string | number) => NInstance | undefined;
-  getInstanceByUrl: (url: string) => NInstance | undefined;
+  getInstanceById: (id: string | number) => XIInstance | undefined;
+  getInstanceByUrl: (url: string) => XIInstance | undefined;
 }
 
 const InstanceContext = createContext<InstanceContextType | undefined>(undefined);
@@ -30,7 +27,7 @@ interface InstanceProviderProps {
 }
 
 export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) => {
-  const [instances, setInstances] = useState<NInstance[]>([]);
+  const [instances, setInstances] = useState<XIInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load instances from IndexedDB on component mount
@@ -51,7 +48,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
     loadInstances();
   }, []);
 
-  const addInstance = async (instance: NInstance) => {
+  const addInstance = async (instance: XIInstance) => {
     try {
       await saveInstance(instance);
       setInstances(prev => [...prev, instance]);
@@ -60,9 +57,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
     }
   };
 
-  
-
-  const updateInstance = async (updatedInstance: NInstance) => {
+  const updateInstance = async (updatedInstance: XIInstance) => {
     try {
       await saveInstance(updatedInstance);
       setInstances(prev =>
