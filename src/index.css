@@ -26,6 +26,52 @@
   --muted: rgba(var(--color-text), 0.7);
 }
 
+/* Sub-navigation styles */
+.sub-nav {
+  margin-left: 20px;
+  margin-bottom: 10px;
+  border-left: 2px solid rgba(var(--color-primary), 0.3);
+  padding-left: 10px;
+}
+
+.sub-nav-link {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  margin-bottom: 3px !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sub-nav-link:hover, .sub-nav-link:active {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sub-nav-link.active {
+  background: rgba(var(--color-primary), 0.15) !important;
+  border-left: 3px solid rgb(var(--color-primary));
+}
+
+/* Smooth transition for sub-nav appearance */
+.sub-nav {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 100px;
+  }
+}
+
+/* Adjust main nav links when sub-nav is present */
+.sidebar-nav > .nav-link:first-child {
+  margin-bottom: 5px;
+}
+
 /* === Reset & Base === */
 *,
 *::before,

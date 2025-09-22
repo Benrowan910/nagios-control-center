@@ -1,10 +1,11 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTheme } from "./context/ThemeContext";
 import { useAuth } from "./context/AuthContext";
 
 export default function Layout() {
   const { theme } = useTheme();
   const { authenticatedInstances, logoutAllInstances } = useAuth();
+  const location = useLocation();
 
   const handleLogoutAll = () => {
     if (window.confirm("Are you sure you want to logout from all instances?")) {
@@ -39,6 +40,20 @@ export default function Layout() {
           <Link to="/" className="nav-link">
             Nagios XI
           </Link>
+
+                    {/* Conditionally render XI sub-tabs */}
+          {activeTab === "xi" && (
+            <div className="sub-nav">
+              <Link to="/hostHealth" className={`nav-link sub-nav-link ${location.pathname === '/hostHealth' ? 'active' : ''}`}>
+                Host Health
+              </Link>
+              <Link to="/serviceHealth" className={`nav-link sub-nav-link ${location.pathname === '/serviceHealth' ? 'active' : ''}`}>
+                Service Health
+              </Link>
+            </div>
+          )}
+
+
           <Link to="/logserver" className={`nav-link ${activeTab === "logserver" ? "active" : ""}`}>
             Nagios Log Server
           </Link>
@@ -47,12 +62,6 @@ export default function Layout() {
           </Link>
           <Link to="/dashlet-creator" className={`nav-link ${activeTab === "dashlet-creator" ? "active" : ""}`}>
             Dashlet Creator
-          </Link>
-          <Link to="/hostHealth" className="nav-link">
-            Host Health
-          </Link>
-          <Link to="/serviceHealth" className="nav-link">
-            Service Health
           </Link>
           <Link to="/settings" className="nav-link">
             Settings
