@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from "../context/ThemeContext";
-import { dashletRegistry } from '../utils/dashletRegistry';
+import { dashletRegistry } from '../utils/DashletRegistry';
 
 // Default templates for each dashlet type
 const DEFAULT_TEMPLATES = {

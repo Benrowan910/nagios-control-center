@@ -10,7 +10,7 @@ import GridLayout from "../components/GridLayout";
 import DashboardControls from "../controls/DashboardControls";
 import { NInstance } from "../api/instances";
 import NNAStatus from "../components/NNAStatus"
-import { dashletRegistry } from '../utils/dashletRegistry';
+import { dashletRegistry } from '../utils/DashletRegistry';
 import CustomDashlet from '../components/CustomDashlet';
 import CustomDashletManager from '../components/CustomDashletManager';
 

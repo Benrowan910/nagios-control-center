@@ -1,6 +1,6 @@
 // components/CustomDashletManager.tsx
 import React, { useState, useEffect } from 'react';
-import { dashletRegistry, DashletConfig } from '../utils/dashletRegistry';
+import { dashletRegistry, DashletConfig } from '../utils/DashletRegistry';
 
 interface CustomDashletManagerProps {
   isOpen: boolean;
