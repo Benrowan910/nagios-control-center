@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import type { XIInstance } from "../api/instances";
+import type { NInstance } from "../api/instances";
 import type { HostStatus } from "../services/nagiosXiService";
 import { NagiosXIService } from "../services/nagiosXiService";
 import { PieChart, Pie, Cell, Tooltip, Legend, LabelList, ResponsiveContainer } from "recharts";
@@ -10,13 +10,13 @@ import { useTheme } from "../context/ThemeContext";
 type HostState = 0 | 1 | 2 | 3; // 0 UP, 1 DOWN, 2 UNREACHABLE, 3 UNKNOWN
 const STATE_LABEL: Record<HostState, string> = { 0: "UP", 1: "DOWN", 2: "UNREACHABLE", 3: "UNKNOWN" };
 
-function isXIInstance(x: any): x is XIInstance {
+function isXIInstance(x: any): x is NInstance {
   return x && typeof x === "object" && typeof x.url === "string" && typeof x.apiKey === "string";
 }
 
 interface Props {
   /** Optional: lock to one instance and hide the dropdown */
-  instance?: XIInstance;
+  instance?: NInstance;
 }
 
 const LS_SELECTED = "hostHealth:selectedKey";
@@ -108,8 +108,8 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
   );
 
   // Resolve authenticated entries to full XIInstance objects
-  const authInstances: XIInstance[] = useMemo(() => {
-    const resolved: XIInstance[] = [];
+  const authInstances: NInstance[] = useMemo(() => {
+    const resolved: NInstance[] = [];
     for (const item of authenticatedInstances ?? []) {
       if (isXIInstance(item)) resolved.push(item);
       else if (typeof item === "string") {
@@ -139,7 +139,7 @@ export default function HostHealth({ instance: forcedInstance }: Props) {
   }, [selectedKey, forcedInstance]);
   useEffect(() => localStorage.setItem(LS_REFRESH, String(refreshMs)), [refreshMs]);
 
-  const instances: XIInstance[] = useMemo(
+  const instances: NInstance[] = useMemo(
     () => (forcedInstance ? [forcedInstance] : authInstances),
     [forcedInstance, authInstances]
   );

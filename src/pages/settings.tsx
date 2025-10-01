@@ -37,6 +37,7 @@ export default function Settings() {
           type="color"
           value={rgbToHex(theme[colorKey])}
           onChange={(e) => handleColorChange(colorKey, e.target.value)}
+          onInput={(e) => handleColorChange(colorKey, e.currentTarget.value)}
           className="w-12 h-12 cursor-pointer rounded-lg border border-border"
         />
         <div className="flex-1">

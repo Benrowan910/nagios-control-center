@@ -31,6 +31,8 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   const [serviceStatusError, setServiceStatusError] = useState<string | null>(
     null,
   );
+  const ac = new AbortController();
+
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
   const [checkInProgress, setCheckInProgress] = useState<{
     [key: string]: boolean;
@@ -72,7 +74,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   const fetchHostStatus = async () => {
     try {
       setHostStatusLoading(true);
-      const hosts = await NagiosXIService.getHostStatus(instance);
+      const hosts = await NagiosXIService.getHostStatus(instance, {signal: ac.signal});
       setHostStatus(hosts);
       setHostStatusError(null);
     } catch (err) {
