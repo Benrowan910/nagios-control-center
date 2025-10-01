@@ -20,6 +20,15 @@ export default function Layout() {
     }
   };
 
+    const getActiveTab = () => {
+    if (location.pathname.startsWith("/nna")) return "nna";
+    if (location.pathname.startsWith("/logserver")) return "logserver";
+    if (location.pathname.startsWith("/creator")) return "dashlet-creator";
+    return "xi"; // Default to XI dashboard
+  };
+
+  const activeTab = getActiveTab();
+
   return (
     <div className="layout">
       {/* Sidebar */}
@@ -70,7 +79,7 @@ export default function Layout() {
           >
             Logout All
           </button>
-          <div>© 2025 Nagios Fusion Lite</div>
+          <div>© 2025 Nagios Control Center</div>
         </div>
       </aside>
 
