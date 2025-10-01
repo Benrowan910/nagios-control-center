@@ -56,6 +56,8 @@ export default function Instance() {
   const [editing, setEditing] = useState(false);
   const [dashlets, setDashlets] = useState<Dashlet[]>([]);
   const [activeDashletTypes, setActiveDashletTypes] = useState<string[]>([]);
+  const [showDashletManager, setShowDashletManager] = useState(false);
+  const [dashletsUpdated, setDashletsUpdated] = useState(0);
 
   const instance = instances.find(inst => inst.id === id);
   
@@ -72,28 +74,31 @@ export default function Instance() {
     return coordinateMap[location] || undefined;
   };
 
-  // Function to create dashlet components
-  const createDashletComponent = (dashletType: string, instance: NInstance, coordinates?: Coordinates): JSX.Element => {
-    switch (dashletType) {
-      case 'instance-details':
-        return (
-          <div key="instance-details" className="card">
-            <h3>Instance Details</h3>
-            <p><strong>URL:</strong> {instance.url}</p>
-            <p><strong>Status:</strong> <span className="badge OK">Connected</span></p>
-            <p><strong>API Key:</strong> {instance.apiKey ? '••••••••' : 'Not set'}</p>
-            {instance.purpose && <p><strong>Purpose:</strong> {instance.purpose}</p>}
-            {instance.location && <p><strong>Location:</strong> {instance.location}</p>}
-          </div>
-        );
-      
-      case 'monitoring-overview':
-        return (
-          <div key="monitoring-overview" className="card">
-            <h3>Monitoring Overview</h3>
-            <NagiosXIStatus instance={instance} />
-          </div>
-        );
+const createDashletComponent = (dashletType: string, instance: NInstance, coordinates?: Coordinates): JSX.Element => {
+  // Check if this is a custom dashlet
+  if (dashletType.startsWith('custom-')) {
+    return <CustomDashlet key={dashletType} dashletId={dashletType} instance={instance} />;
+  }  switch (dashletType) {
+    case 'instance-details':
+      return (
+        <div key="instance-details" className="card">
+          <h3>Instance Details</h3>
+          <p><strong>URL:</strong> {instance.url}</p>
+          <p><strong>Status:</strong> <span className="badge OK">Connected</span></p>
+          <p><strong>API Key:</strong> {instance.apiKey ? '••••••••' : 'Not set'}</p>
+          {instance.purpose && <p><strong>Purpose:</strong> {instance.purpose}</p>}
+          {instance.location && <p><strong>Location:</strong> {instance.location}</p>}
+        </div>
+      );
+    
+    case 'monitoring-overview':
+      return (
+        <div key="monitoring-overview" className="card">
+          <h3>Monitoring Overview</h3>
+          {instance.type === 'xi' && <NagiosXIStatus instance={instance} />}
+          {instance.type === 'nna' && <NNAStatus instance={instance} />}
+        </div>
+      );
       
       case 'weather':
         return coordinates ? (
@@ -120,36 +125,53 @@ export default function Instance() {
     }
   };
 
-  // Initialize dashlets based on instance data
-  useEffect(() => {
-    if (instance) {
-      const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
+// Initialize dashlets based on instance data
+useEffect(() => {
+  if (instance) {
+    const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
+    
+    // Load saved layout or use default
+    const layoutKey = `instance-${instance.id}-layout`;
+    const savedLayout = localStorage.getItem(layoutKey);
+    let layout: LayoutItem[] = [];
+    
+    if (savedLayout) {
+      layout = JSON.parse(savedLayout);
+    } else {
+      // Load custom dashlets for this instance type
+      const customDashlets = dashletRegistry.getDashletsByType(instance.type);
+      const customDashletItems = customDashlets.map(dashlet => ({
+        i: `custom-${dashlet.id}`,
+        x: 0,
+        y: 0,
+        w: dashlet.defaultSize.w,
+        h: dashlet.defaultSize.h
+      }));
       
-      // Load saved layout or use default
-      const layoutKey = `instance-${instance.id}-layout`;
-      const savedLayout = localStorage.getItem(layoutKey);
-      const layout: LayoutItem[] = savedLayout ? JSON.parse(savedLayout) : DEFAULT_LAYOUT;
-      
-      // Determine which dashlets are active
-      const activeTypes = layout.map((item: LayoutItem) => item.i);
-      setActiveDashletTypes(activeTypes);
-      
-      // Create dashlet components
-      const dashletComponents: Dashlet[] = layout.map((item: LayoutItem) => {
-        const component = createDashletComponent(item.i, instance, coordinates);
-        return {
-          i: item.i,
-          component,
-          x: item.x,
-          y: item.y,
-          w: item.w,
-          h: item.h
-        };
-      });
-      
-      setDashlets(dashletComponents);
+      // Combine with default layout
+      layout = [...DEFAULT_LAYOUT, ...customDashletItems];
     }
-  }, [instance]);
+    
+    // Determine which dashlets are active
+    const activeTypes = layout.map((item: LayoutItem) => item.i);
+    setActiveDashletTypes(activeTypes);
+    
+    // Create dashlet components
+    const dashletComponents: Dashlet[] = layout.map((item: LayoutItem) => {
+      const component = createDashletComponent(item.i, instance, coordinates);
+      return {
+        i: item.i,
+        component,
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h
+      };
+    });
+    
+    setDashlets(dashletComponents);
+  }
+}, [instance]);
 
   if (!instance) {
     return <div>Instance not found</div>;
@@ -171,7 +193,38 @@ export default function Instance() {
     setEditing(false);
   };
 
+  const handleDashletsUpdated = () => {
+    setDashletsUpdated(prev => prev + 1);
+    if(instance){
+      const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
+    }
+  }
+
+
   const addDashlet = (dashletType: string) => {
+  if (dashletType.startsWith('custom-')) {
+    // Add custom dashlet
+    const dashletId = dashletType.replace('custom-', '');
+    const dashlet = dashletRegistry.getDashlet(dashletId);
+    
+    if (dashlet) {
+      const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
+      
+      const newDashlet: Dashlet = {
+        i: `custom-${dashletId}`,
+        component: createDashletComponent(`custom-${dashletId}`, instance, coordinates),
+        x: 0,
+        y: Math.max(...dashlets.map(d => d.y + d.h), 0),
+        w: dashlet.defaultSize.w,
+        h: dashlet.defaultSize.h
+      };
+      
+      setActiveDashletTypes([...activeDashletTypes, `custom-${dashletId}`]);
+      setDashlets([...dashlets, newDashlet]);
+    } else{
+      console.error(`Dashlet ${dashletId} not found in registry`);
+    }
+  } else {
     const coordinates = instance.location ? getCoordinatesFromLocation(instance.location) : undefined;
     
     // Create new dashlet
@@ -189,7 +242,9 @@ export default function Instance() {
     
     // Add to dashlets array
     setDashlets([...dashlets, newDashlet]);
-  };
+  }
+};
+
 
   const removeDashlet = (dashletType: string) => {
     // Remove from active dashlet types
@@ -213,6 +268,17 @@ export default function Instance() {
   return (
     <div>
       <div className="header">
+        <button 
+          onClick={() => setShowDashletManager(true)}
+          className="btn btn-secondary"
+        >
+          Manage Custom Dashlets
+        </button>
+        <CustomDashletManager
+          isOpen={showDashletManager}
+          onClose={() => setShowDashletManager(false)}
+          onDashletUpdated={handleDashletsUpdated}
+        />
         <div>
           <h1>{instance.nickname || instance.name}</h1>
           <p className="small">{instance.purpose}</p>
@@ -225,7 +291,10 @@ export default function Instance() {
               onAddDashlet={addDashlet}
               onRemoveDashlet={removeDashlet}
               onResetLayout={resetLayout}
+              instanceType={instance.type} // Add this
             />
+
+            
             <button 
               onClick={() => setEditing(true)}
               className="btn btn-secondary"
@@ -265,6 +334,8 @@ export default function Instance() {
             </div>
           )}
         </div>
+
+        
       ) : editing ? (
         <InstanceEditForm 
           instance={instance}
@@ -279,7 +350,12 @@ export default function Instance() {
             </div>
           ))}
         </GridLayout>
+
+        
       )}
     </div>
+
+    
+  
   );
 }
