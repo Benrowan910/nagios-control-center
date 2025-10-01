@@ -232,10 +232,10 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   };
 
   const serviceStatusCounts = {
-    ok: serviceStatus.filter((s) => s.current_state === 0).length,
-    warning: serviceStatus.filter((s) => s.current_state === 1).length,
-    critical: serviceStatus.filter((s) => s.current_state === 2).length,
-    unknown: serviceStatus.filter((s) => s.current_state === 3).length,
+    ok: serviceStatus.filter((s) => s.current_state === "0").length,
+    warning: serviceStatus.filter((s) => s.current_state === "1").length,
+    critical: serviceStatus.filter((s) => s.current_state === "2").length,
+    unknown: serviceStatus.filter((s) => s.current_state === "3").length,
   };
 
   return (
