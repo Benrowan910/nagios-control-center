@@ -8,7 +8,11 @@ import InstanceLogin from "../components/InstanceLogin";
 import InstanceEditForm from "../components/InstanceEditForm";
 import GridLayout from "../components/GridLayout";
 import DashboardControls from "../controls/DashboardControls";
-import { XIInstance } from "../api/instances";
+import { NInstance } from "../api/instances";
+import NNAStatus from "../components/NNAStatus"
+import { dashletRegistry } from '../utils/DashletRegistry';
+import CustomDashlet from '../components/CustomDashlet';
+import CustomDashletManager from '../components/CustomDashletManager';
 
 // Define types for coordinates
 interface Coordinates {

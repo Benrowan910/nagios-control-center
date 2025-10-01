@@ -27,6 +27,52 @@
   --muted: rgba(var(--color-text), 0.7);
 }
 
+/* Sub-navigation styles */
+.sub-nav {
+  margin-left: 20px;
+  margin-bottom: 10px;
+  border-left: 2px solid rgba(var(--color-primary), 0.3);
+  padding-left: 10px;
+}
+
+.sub-nav-link {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  margin-bottom: 3px !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sub-nav-link:hover, .sub-nav-link:active {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sub-nav-link.active {
+  background: rgba(var(--color-primary), 0.15) !important;
+  border-left: 3px solid rgb(var(--color-primary));
+}
+
+/* Smooth transition for sub-nav appearance */
+.sub-nav {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 100px;
+  }
+}
+
+/* Adjust main nav links when sub-nav is present */
+.sidebar-nav > .nav-link:first-child {
+  margin-bottom: 5px;
+}
+
 /* === Reset & Base === */
 *,
 *::before,
@@ -1279,4 +1325,145 @@ kbd {
     flex-direction: column;
     gap: 5px;
   }
+  
+  .navbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  
+  .table {
+    font-size: 12px;
+  }
+  
+  .table th, 
+  .table td {
+    padding: 8px 4px;
+  }
+  
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Safe area insets for notch devices */
+  .top-navbar {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: env(safe-area-inset-top);
+    min-height: calc(60px + env(safe-area-inset-top));
+  }
+  
+  .page-content {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 20px;
+  }
+  
+  .btn {
+    padding: 10px 16px;
+  }
+  
+  .status-item .value {
+    font-size: 1.2rem;
+  }
+  
+  .temp {
+    font-size: 1.8rem;
+  }
+  
+  .weather-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .modal-body {
+    padding: 16px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card {
+    border-width: 2px;
+  }
+  
+  .btn {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Log Server specific styles */
+.tab-nav {
+  display: flex;
+  gap: 5px;
+  background: var(--card);
+  border-radius: 8px;
+  padding: 5px;
+}
+
+.tab-btn {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-results {
+  margin-top: 20px;
+}
+
+.log-entry {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-top: 15px;
 }

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { dashletRegistry } from '../utils/DashletRegistry';
 
 interface DashboardControlsProps {
   availableDashlets: string[];
