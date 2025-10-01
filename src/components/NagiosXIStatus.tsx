@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
-import { XIInstance } from "../api/instances";
-import { NagiosXIService, HostStatus, ServiceStatus, SystemInfo } from "../services/nagiosXiService";
+import { NInstance } from "../api/instances";
+import {
+  NagiosXIService,
+  HostStatus,
+  ServiceStatus,
+  SystemInfo,
+} from "../services/nagiosXiService";
 
 interface NagiosXIStatusProps {
-  instance: XIInstance;
+  instance: NInstance;
 }
 
 interface HostWithServices {
@@ -15,22 +20,30 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [hostStatus, setHostStatus] = useState<HostStatus[]>([]);
   const [serviceStatus, setServiceStatus] = useState<ServiceStatus[]>([]);
-  const [hostsWithServices, setHostsWithServices] = useState<HostWithServices[]>([]);
+  const [hostsWithServices, setHostsWithServices] = useState<
+    HostWithServices[]
+  >([]);
   const [systemInfoLoading, setSystemInfoLoading] = useState(true);
   const [hostStatusLoading, setHostStatusLoading] = useState(true);
   const [serviceStatusLoading, setServiceStatusLoading] = useState(true);
   const [systemInfoError, setSystemInfoError] = useState<string | null>(null);
   const [hostStatusError, setHostStatusError] = useState<string | null>(null);
-  const [serviceStatusError, setServiceStatusError] = useState<string | null>(null);
+  const [serviceStatusError, setServiceStatusError] = useState<string | null>(
+    null,
+  );
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
-  const [checkInProgress, setCheckInProgress] = useState<{ [key: string]: boolean }>({});
+  const [checkInProgress, setCheckInProgress] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   // Group services by host
   useEffect(() => {
     if (hostStatus.length > 0 && serviceStatus.length > 0) {
-      const grouped: HostWithServices[] = hostStatus.map(host => ({
+      const grouped: HostWithServices[] = hostStatus.map((host) => ({
         host,
-        services: serviceStatus.filter(service => service.host_name === host.host_name)
+        services: serviceStatus.filter(
+          (service) => service.host_name === host.host_name,
+        ),
       }));
       setHostsWithServices(grouped);
     }
@@ -87,7 +100,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   useEffect(() => {
     if (instance.authenticated) {
       fetchHostStatus();
-      
+
       // Set up polling for real-time updates
       const interval = setInterval(fetchHostStatus, 30000);
       return () => clearInterval(interval);
@@ -97,7 +110,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   useEffect(() => {
     if (instance.authenticated) {
       fetchServiceStatus();
-      
+
       // Set up polling for real-time updates
       const interval = setInterval(fetchServiceStatus, 30000);
       return () => clearInterval(interval);
@@ -106,8 +119,8 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
 
   const triggerHostCheck = async (hostName: string) => {
     const key = `host-${hostName}`;
-    setCheckInProgress(prev => ({ ...prev, [key]: true }));
-    
+    setCheckInProgress((prev) => ({ ...prev, [key]: true }));
+
     try {
       const response = await fetch(
         `http://${instance.url}/nagiosxi/api/v1/system/massimmediatecheck?apikey=${instance.apiKey}&pretty=1`,
@@ -115,7 +128,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: `hosts[]=${encodeURIComponent(hostName)}`,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -125,18 +138,21 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
       // Wait a moment for the check to complete, then refresh
       setTimeout(() => {
         fetchHostStatus();
-        setCheckInProgress(prev => ({ ...prev, [key]: false }));
+        setCheckInProgress((prev) => ({ ...prev, [key]: false }));
       }, 3000);
     } catch (error) {
       console.error("Error triggering host check:", error);
-      setCheckInProgress(prev => ({ ...prev, [key]: false }));
+      setCheckInProgress((prev) => ({ ...prev, [key]: false }));
     }
   };
 
-  const triggerServiceCheck = async (hostName: string, serviceDescription: string) => {
+  const triggerServiceCheck = async (
+    hostName: string,
+    serviceDescription: string,
+  ) => {
     const key = `service-${hostName}-${serviceDescription}`;
-    setCheckInProgress(prev => ({ ...prev, [key]: true }));
-    
+    setCheckInProgress((prev) => ({ ...prev, [key]: true }));
+
     try {
       const response = await fetch(
         `http://${instance.url}/nagiosxi/api/v1/system/massimmediatecheck?apikey=${instance.apiKey}&pretty=1`,
@@ -144,7 +160,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: `services[]=${encodeURIComponent(hostName + "!" + serviceDescription)}`,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -154,11 +170,11 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
       // Wait a moment for the check to complete, then refresh
       setTimeout(() => {
         fetchServiceStatus();
-        setCheckInProgress(prev => ({ ...prev, [key]: false }));
+        setCheckInProgress((prev) => ({ ...prev, [key]: false }));
       }, 3000);
     } catch (error) {
       console.error("Error triggering service check:", error);
-      setCheckInProgress(prev => ({ ...prev, [key]: false }));
+      setCheckInProgress((prev) => ({ ...prev, [key]: false }));
     }
   };
 
@@ -175,25 +191,41 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
   const getStatusBadge = (status: string | number) => {
     let statusClass = "";
     let statusText = "";
-    
+
     if (typeof status === "string") {
       // Host status
-      statusClass = status === "0" ? "OK" : status === "1" ? "CRITICAL" : "UNKNOWN";
-      statusText = status === "0" ? "UP" : status === "1" ? "DOWN" : "UNREACHABLE";
+      statusClass =
+        status === "0" ? "OK" : status === "1" ? "CRITICAL" : "UNKNOWN";
+      statusText =
+        status === "0" ? "UP" : status === "1" ? "DOWN" : "UNREACHABLE";
     } else {
       // Service status
-      statusClass = status === 0 ? "OK" : status === 1 ? "WARNING" : status === 2 ? "CRITICAL" : "UNKNOWN";
-      statusText = status === 0 ? "OK" : status === 1 ? "WARNING" : status === 2 ? "CRITICAL" : "UNKNOWN";
+      statusClass =
+        status === 0
+          ? "OK"
+          : status === 1
+            ? "WARNING"
+            : status === 2
+              ? "CRITICAL"
+              : "UNKNOWN";
+      statusText =
+        status === 0
+          ? "OK"
+          : status === 1
+            ? "WARNING"
+            : status === 2
+              ? "CRITICAL"
+              : "UNKNOWN";
     }
-    
+
     return <span className={`badge ${statusClass}`}>{statusText}</span>;
   };
 
   // Calculate status counts
   const hostStatusCounts = {
-    up: hostStatus.filter(h => h.current_state === '0').length,
-    down: hostStatus.filter(h => h.current_state === '1').length,
-    unreachable: hostStatus.filter(h => h.current_state === '2').length
+    up: hostStatus.filter((h) => h.current_state === "0").length,
+    down: hostStatus.filter((h) => h.current_state === "1").length,
+    unreachable: hostStatus.filter((h) => h.current_state === "2").length,
   };
 
   const serviceStatusCounts = {
@@ -213,13 +245,15 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
           <div className="error small">{systemInfoError}</div>
         ) : systemInfo ? (
           <div className="small">
-            <strong>{systemInfo.product} {systemInfo.version}</strong> | 
-            Hosts: {systemInfo.hosts_total} | 
-            Services: {systemInfo.services_total}
+            <strong>
+              {systemInfo.product} {systemInfo.version}
+            </strong>{" "}
+            | Hosts: {systemInfo.hosts_total} | Services:{" "}
+            {systemInfo.services_total}
           </div>
         ) : null}
       </div>
-      
+
       {/* Status Summary Section */}
       <div className="status-grid mb-6">
         {/* Host Status Summary */}
@@ -233,7 +267,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             <div className="value OK">{hostStatusCounts.up}</div>
           )}
         </div>
-        
+
         <div className="status-item">
           <div className="label">Hosts Down</div>
           {hostStatusLoading ? (
@@ -244,7 +278,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             <div className="value CRITICAL">{hostStatusCounts.down}</div>
           )}
         </div>
-        
+
         <div className="status-item">
           <div className="label">Hosts Unreachable</div>
           {hostStatusLoading ? (
@@ -255,7 +289,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             <div className="value UNKNOWN">{hostStatusCounts.unreachable}</div>
           )}
         </div>
-        
+
         {/* Service Status Summary */}
         <div className="status-item">
           <div className="label">Services OK</div>
@@ -267,7 +301,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             <div className="value OK">{serviceStatusCounts.ok}</div>
           )}
         </div>
-        
+
         <div className="status-item">
           <div className="label">Services Warn</div>
           {serviceStatusLoading ? (
@@ -278,7 +312,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             <div className="value WARNING">{serviceStatusCounts.warning}</div>
           )}
         </div>
-        
+
         <div className="status-item">
           <div className="label">Services Crit</div>
           {serviceStatusLoading ? (
@@ -289,7 +323,7 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             <div className="value CRITICAL">{serviceStatusCounts.critical}</div>
           )}
         </div>
-        
+
         <div className="status-item">
           <div className="label">Services Unk</div>
           {serviceStatusLoading ? (
@@ -305,13 +339,11 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
       {/* Detailed Hosts and Services Section */}
       <div className="hosts-services-container">
         <h3 className="mb-4">Hosts and Services</h3>
-        
+
         {hostStatusLoading || serviceStatusLoading ? (
           <div className="loading">Loading hosts and services...</div>
         ) : hostStatusError || serviceStatusError ? (
-          <div className="error">
-            {hostStatusError || serviceStatusError}
-          </div>
+          <div className="error">{hostStatusError || serviceStatusError}</div>
         ) : hostsWithServices.length === 0 ? (
           <div className="empty-state">No hosts or services found</div>
         ) : (
@@ -319,25 +351,26 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
             {hostsWithServices.map(({ host, services }) => {
               const hostCheckKey = `host-${host.host_name}`;
               const isHostCheckInProgress = checkInProgress[hostCheckKey];
-              
+
               return (
                 <div key={host.host_object_id} className="host-card">
-                  <div 
+                  <div
                     className="host-header"
                     onClick={() => toggleHostExpansion(host.host_object_id)}
                   >
                     <div className="host-name">
                       <span className="toggle-icon">
-                        {expandedHosts.has(host.host_object_id) ? '▼' : '►'}
+                        {expandedHosts.has(host.host_object_id) ? "▼" : "►"}
                       </span>
                       {host.host_name} ({host.address})
                     </div>
                     <div className="host-status">
                       {getStatusBadge(host.current_state)}
                       <span className="services-count">
-                        {services.length} service{services.length !== 1 ? 's' : ''}
+                        {services.length} service
+                        {services.length !== 1 ? "s" : ""}
                       </span>
-                      <button 
+                      <button
                         className="btn btn-sm btn-secondary"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -345,32 +378,47 @@ export default function NagiosXIStatus({ instance }: NagiosXIStatusProps) {
                         }}
                         disabled={isHostCheckInProgress}
                       >
-                        {isHostCheckInProgress ? 'Checking...' : 'Check Host'}
+                        {isHostCheckInProgress ? "Checking..." : "Check Host"}
                       </button>
                     </div>
                   </div>
-                  
+
                   {expandedHosts.has(host.host_object_id) && (
                     <div className="services-list">
                       {services.length === 0 ? (
-                        <div className="empty-service">No services found for this host</div>
+                        <div className="empty-service">
+                          No services found for this host
+                        </div>
                       ) : (
-                        services.map(service => {
+                        services.map((service) => {
                           const serviceCheckKey = `service-${service.host_name}-${service.service_description}`;
-                          const isServiceCheckInProgress = checkInProgress[serviceCheckKey];
-                          
+                          const isServiceCheckInProgress =
+                            checkInProgress[serviceCheckKey];
+
                           return (
-                            <div key={`${service.host_name}-${service.service_description}`} className="service-item">
+                            <div
+                              key={`${service.host_name}-${service.service_description}`}
+                              className="service-item"
+                            >
                               <div className="service-info">
-                                <div className="service-name">{service.service_description}</div>
+                                <div className="service-name">
+                                  {service.service_description}
+                                </div>
                                 <div className="service-status">
                                   {getStatusBadge(service.current_state)}
-                                  <button 
+                                  <button
                                     className="btn btn-sm btn-secondary"
-                                    onClick={() => triggerServiceCheck(service.host_name, service.service_description)}
+                                    onClick={() =>
+                                      triggerServiceCheck(
+                                        service.host_name,
+                                        service.service_description,
+                                      )
+                                    }
                                     disabled={isServiceCheckInProgress}
                                   >
-                                    {isServiceCheckInProgress ? 'Checking...' : 'Check Service'}
+                                    {isServiceCheckInProgress
+                                      ? "Checking..."
+                                      : "Check Service"}
                                   </button>
                                 </div>
                               </div>
