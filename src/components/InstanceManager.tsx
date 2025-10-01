@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { XIInstance } from '../api/instances';
+import { NInstance } from '../api/instances';
 import InstanceLogin from './InstanceLogin';
 
 interface InstanceManagerProps {
-  onInstanceAdded: (instance: XIInstance) => void;
+  onInstanceAdded: (instance: NInstance) => void;
 }
 
 export default function InstanceManager({ onInstanceAdded }: InstanceManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newInstance, setNewInstance] = useState<Partial<XIInstance>>({
+  const [newInstance, setNewInstance] = useState<Partial<NInstance>>({
     name: '',
     url: '',
     nickname: '',
@@ -19,7 +19,7 @@ export default function InstanceManager({ onInstanceAdded }: InstanceManagerProp
   });
 
   const handleAddInstance = () => {
-    const instance: XIInstance = {
+    const instance: NInstance = {
       id: Date.now().toString(),
       name: newInstance.name || '',
       url: newInstance.url || '',

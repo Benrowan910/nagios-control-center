@@ -1,4 +1,4 @@
-export interface XIInstance {
+export interface NInstance {
   id: string;
   name: string;           // Canonical XI instance name
   url: string;            // API URL
@@ -13,6 +13,6 @@ export interface XIInstance {
   authenticated: boolean; // Whether instance is authenticated
 }
 
-export let INSTANCES: XIInstance[] = [
+export let INSTANCES: NInstance[] = [
   // Start with empty array, instances will be added through UI
 ];

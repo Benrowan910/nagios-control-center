@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { XIInstance } from '../api/instances';
+import { NInstance } from '../api/instances';
 import { NagiosXIService } from '../services/nagiosXiService';
 import { useAuth } from '../context/AuthContext';
 
 interface InstanceLoginProps {
-  instance: XIInstance;
-  onLoginSuccess: (instance: XIInstance) => void;
+  instance: NInstance;
+  onLoginSuccess: (instance: NInstance) => void;
   onCancel?: () => void;
 }
 

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { XIInstance } from "../api/instances";
+import { NInstance } from "../api/instances";
 import InstanceLogin from "./InstanceLogin";
 import NagiosXIStatus from "./NagiosXIStatus";
 
 interface DashletProps {
-  instance: XIInstance;
+  instance: NInstance;
   isAuthenticated: boolean;
-  onInstanceUpdate: (instance: XIInstance) => void;
+  onInstanceUpdate: (instance: NInstance) => void;
   onInstanceDelete: (instanceId: string) => void;
 }
 
@@ -15,7 +15,7 @@ export default function Dashlet({ instance, isAuthenticated, onInstanceUpdate, o
   const [showLogin, setShowLogin] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleLoginSuccess = (updatedInstance: XIInstance) => {
+  const handleLoginSuccess = (updatedInstance: NInstance) => {
     onInstanceUpdate(updatedInstance);
     setShowLogin(false);
   };

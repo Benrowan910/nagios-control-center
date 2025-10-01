@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import type { XIInstance } from '../api/instances';
+import type { NInstance } from '../api/instances';
 import { getInstances, saveInstance, deleteInstance } from '../utils/db';
 
 interface InstanceContextType {
-  instances: XIInstance[];
+  instances: NInstance[];
   loading: boolean;
-  addInstance: (instance: XIInstance) => Promise<void>;
-  updateInstance: (instance: XIInstance) => Promise<void>;
+  addInstance: (instance: NInstance) => Promise<void>;
+  updateInstance: (instance: NInstance) => Promise<void>;
   removeInstance: (id: string) => Promise<void>;
-  getInstanceById: (id: string | number) => XIInstance | undefined;
-  getInstanceByUrl: (url: string) => XIInstance | undefined;
+  getInstanceById: (id: string | number) => NInstance | undefined;
+  getInstanceByUrl: (url: string) => NInstance | undefined;
 }
 
 const InstanceContext = createContext<InstanceContextType | undefined>(undefined);
@@ -27,7 +27,7 @@ interface InstanceProviderProps {
 }
 
 export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) => {
-  const [instances, setInstances] = useState<XIInstance[]>([]);
+  const [instances, setInstances] = useState<NInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load instances from IndexedDB on component mount
@@ -48,7 +48,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
     loadInstances();
   }, []);
 
-  const addInstance = async (instance: XIInstance) => {
+  const addInstance = async (instance: NInstance) => {
     try {
       await saveInstance(instance);
       setInstances(prev => [...prev, instance]);
@@ -57,7 +57,7 @@ export const InstanceProvider: React.FC<InstanceProviderProps> = ({ children }) 
     }
   };
 
-  const updateInstance = async (updatedInstance: XIInstance) => {
+  const updateInstance = async (updatedInstance: NInstance) => {
     try {
       await saveInstance(updatedInstance);
       setInstances(prev =>
