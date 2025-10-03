@@ -1,18 +1,27 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { useTheme } from "./context/ThemeContext";
 import { useAuth } from "./context/AuthContext";
 
 export default function Layout() {
-  const { theme } = useTheme();
-  const { authenticatedInstances, logoutAllInstances } = useAuth();
+  const { authenticatedInstances } = useAuth();
   const location = useLocation();
 
-  const handleLogoutAll = () => {
+  // In your Layout.jsx, update the logout function:
+  const handleLogoutAll = async () => {
     if (window.confirm("Are you sure you want to logout from all instances?")) {
-      logoutAllInstances();
+      const sessionId = localStorage.getItem("sessionId");
+      if (sessionId) {
+        await fetch("/api/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+      }
+
       // Clear all stored credentials
-      Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('credentials_')) {
+      localStorage.removeItem("sessionId");
+      localStorage.removeItem("loggedIn");
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith("credentials_")) {
           sessionStorage.removeItem(key);
         }
       });
@@ -20,7 +29,7 @@ export default function Layout() {
     }
   };
 
-    const getActiveTab = () => {
+  const getActiveTab = () => {
     if (location.pathname.startsWith("/nna")) return "nna";
     if (location.pathname.startsWith("/logserver")) return "logserver";
     if (location.pathname.startsWith("/creator")) return "dashlet-creator";
@@ -41,26 +50,40 @@ export default function Layout() {
             Nagios XI
           </Link>
 
-                    {/* Conditionally render XI sub-tabs */}
+          {/* Conditionally render XI sub-tabs */}
           {activeTab === "xi" && (
             <div className="sub-nav">
-              <Link to="/hostHealth" className={`nav-link sub-nav-link ${location.pathname === '/hostHealth' ? 'active' : ''}`}>
+              <Link
+                to="/hostHealth"
+                className={`nav-link sub-nav-link ${location.pathname === "/hostHealth" ? "active" : ""}`}
+              >
                 Host Health
               </Link>
-              <Link to="/serviceHealth" className={`nav-link sub-nav-link ${location.pathname === '/serviceHealth' ? 'active' : ''}`}>
+              <Link
+                to="/serviceHealth"
+                className={`nav-link sub-nav-link ${location.pathname === "/serviceHealth" ? "active" : ""}`}
+              >
                 Service Health
               </Link>
             </div>
           )}
 
-
-          <Link to="/logserver" className={`nav-link ${activeTab === "logserver" ? "active" : ""}`}>
+          <Link
+            to="/logserver"
+            className={`nav-link ${activeTab === "logserver" ? "active" : ""}`}
+          >
             Nagios Log Server
           </Link>
-          <Link to="/nna" className={`nav-link ${activeTab === "nna" ? "active" : ""}`}>
+          <Link
+            to="/nna"
+            className={`nav-link ${activeTab === "nna" ? "active" : ""}`}
+          >
             Nagios Network Analyzer
           </Link>
-          <Link to="/dashlet-creator" className={`nav-link ${activeTab === "dashlet-creator" ? "active" : ""}`}>
+          <Link
+            to="/dashlet-creator"
+            className={`nav-link ${activeTab === "dashlet-creator" ? "active" : ""}`}
+          >
             Dashlet Creator
           </Link>
           <Link to="/settings" className="nav-link">
@@ -72,7 +95,7 @@ export default function Layout() {
             <span className="session-indicator"></span>
             {authenticatedInstances.length} instance(s) authenticated
           </div>
-          <button 
+          <button
             onClick={handleLogoutAll}
             className="btn btn-sm btn-secondary"
             disabled={authenticatedInstances.length === 0}
