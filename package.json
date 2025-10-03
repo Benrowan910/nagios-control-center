@@ -13,6 +13,7 @@
     "@capacitor/android": "^7.4.3",
     "@capacitor/cli": "^7.4.3",
     "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@tailwindcss/vite": "^4.1.13",
     "idb": "^8.0.3",
     "react": "^19.1.1",

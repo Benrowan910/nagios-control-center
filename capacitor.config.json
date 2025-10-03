@@ -1,5 +1,5 @@
 {
-  "appId": "com.ncc.app",
-  "appName": "nagios-control-center-mobile",
+  "appId": "com.example.app",
+  "appName": "nagios-control-center",
   "webDir": "dist"
 }
