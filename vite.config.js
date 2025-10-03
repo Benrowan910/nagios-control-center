@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/nagiosxi": {
-        target: "http://172.24.213.65", // your Nagios XI server
+        target: "localhost:3000", // your Nagios XI server
         changeOrigin: true,
         secure: false,
       },
