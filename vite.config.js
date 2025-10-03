@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/nagiosxi": {
-        target: "localhost:3000",
+        target: "localhost:3089",
         changeOrigin: true,
         secure: false,
       },
