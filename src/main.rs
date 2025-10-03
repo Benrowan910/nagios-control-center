@@ -1,13 +1,15 @@
 include!("auth.rs");
 use axum::{
     Json, Router,
-    http::{StatusCode, Uri},
+    http::{StatusCode, Uri, Method},
     response::Response,
     routing::{get, post},
 };
 use include_dir::{Dir, include_dir};
 use mime_guess::from_path;
 use tokio::net::TcpListener;
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
 
 // Include the built frontend directory
 static FRONTEND_DIR: Dir = include_dir!("dist"); // Adjust path
@@ -32,14 +34,20 @@ struct AuthResponse {
 
 #[tokio::main]
 async fn main() {
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/api/setup-admin", post(setup_admin))
         .route("/api/login", post(login))
         .route("/api/logout", post(logout))
+        .route("/api/validate-session", post(validate_session_endpoint))
         .route("/api/needs-setup", get(needs_setup))
-        .fallback(serve_static_files);
+        .fallback(serve_static_files).layer(cors);
 
-    let listener = TcpListener::bind("127.0.0.1:3089").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:3089").await.unwrap();
     println!(
         "Server running on http://{}",
         listener.local_addr().unwrap()
@@ -57,29 +65,36 @@ async fn main() {
 
 async fn serve_static_files(uri: Uri) -> Result<Response, StatusCode> {
     let path = uri.path().trim_start_matches('/');
-
-    // API routes should have been handled above
+    
     if path.starts_with("api/") {
         return Err(StatusCode::NOT_FOUND);
     }
-
-    // Default to index.html for SPA routing
-    let file_path = if path.is_empty() || !FRONTEND_DIR.get_file(path).is_some() {
-        "index.html"
+    
+    // Serve from frontend/dist
+    let file_path = if path.is_empty() {
+        "frontend/dist/index.html"
     } else {
-        path
+        &format!("dist/{}", path)
     };
-
-    if let Some(file) = FRONTEND_DIR.get_file(file_path) {
-        let mime_type = from_path(file_path).first_or_octet_stream();
-        let body = axum::body::Body::from(file.contents());
-
-        Ok(Response::builder()
-            .header("content-type", mime_type.as_ref())
-            .body(body)
-            .unwrap())
-    } else {
-        Err(StatusCode::NOT_FOUND)
+    
+    match fs::read(file_path) {
+        Ok(content) => {
+            let mime_type = mime_guess::from_path(file_path).first_or_octet_stream();
+            Ok(Response::builder()
+                .header("content-type", mime_type.as_ref())
+                .body(axum::body::Body::from(content))
+                .unwrap())
+        }
+        Err(_) => {
+            // Fallback to index.html for SPA routes
+            match fs::read("frontend/dist/index.html"){
+                Ok(content) => Ok(Response::builder()
+                    .header("content-type", "text/html")
+                    .body(axum::body::Body::from(content))
+                    .unwrap()),
+                Err(_) => Err(StatusCode::NOT_FOUND),
+            }
+        }
     }
 }
 
