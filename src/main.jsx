@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import SetupAdmin from "./auth/SetupAdmin.jsx";
 import Login from "./auth/Login.jsx";
-import App from "./App.jsx";
+import DashboardApp from "./DashboardApp.jsx";
 
 function Root() {
   const [needsSetup, setNeedsSetup] = useState(null);

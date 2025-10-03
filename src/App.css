@@ -27,7 +27,64 @@ a {
 }
 
 .theme-tertiary {
+  --color-ter/* === Tailwind Base === */
+@import "tailwindcss";
+
+/* === Theme Variables === */
+:root {
+  --color-primary: 59 130 246;   /* Blue-500 */
+  --color-tertiary: 16 185 129;  /* Emerald-500 */
+}
+
+/* === Global Styles === */
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold tracking-tight text-gray-800;
+}
+
+a {
+  @apply text-primary hover:underline;
+}
+
+/* === Theme Variants (optional overrides) === */
+.theme-primary {
+  --color-primary: 59 130 246; /* Blue */
+}
+
+.theme-tertiary {
   --color-tertiary: 16 185 129; /* Emerald */
+}
+
+/* === Utility Classes Using Variables === */
+.bg-primary {
+  background-color: rgb(var(--color-primary) / 1);
+}
+.text-primary {
+  color: rgb(var(--color-primary) / 1);
+}
+.border-primary {
+  border-color: rgb(var(--color-primary) / 1);
+}
+
+.bg-tertiary {
+  background-color: rgb(var(--color-tertiary) / 1);
+}
+.text-tertiary {
+  color: rgb(var(--color-tertiary) / 1);
+}
+.border-tertiary {
+  border-color: rgb(var(--color-tertiary) / 1);
+}
+
+/* === Reusable Card Style === */
+.card {
+  @apply bg-white rounded-xl shadow-md p-6 border border-gray-200;
+}
+tiary: 16 185 129; /* Emerald */
 }
 
 /* === Utility Classes Using Variables === */

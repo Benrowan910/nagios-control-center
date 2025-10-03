@@ -1,11 +1,11 @@
 include!("rs-backend/auth.rs");
 
 use axum::{
-    routing::{post, get},
-    extract::Json, Router,
+    Router,
+    extract::Json,
+    routing::{get, post},
 };
 use std::net::SocketAddr;
-use auth::{USERS, save_users, create_user, validate_login};
 
 #[derive(Deserialize)]
 struct Credentials {
@@ -22,29 +22,35 @@ async fn main() {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Server running on http://{}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    axum::serve(tokio::net::TcpListener::bind(addr).await.unwrap(), app)
         .await
         .unwrap();
 }
 
-async fn needs_setup() -> Json<bool> {
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+
+async fn needs_setup() -> impl IntoResponse {
     let users = USERS.lock().unwrap();
     Json(users.is_empty())
 }
 
-async fn setup_admin(Json(creds): Json<Credentials>) -> &'static str {
+async fn setup_admin(Json(creds): Json<Credentials>) -> impl IntoResponse {
     let mut users = USERS.lock().unwrap();
     if !users.is_empty() {
-        return "Admin already exists";
+        return (StatusCode::BAD_REQUEST, "Admin already exists");
     }
     let admin = create_user(&creds.username, &creds.password, "admin");
     users.push(admin);
     save_users(&users);
-    "Admin created"
+    (StatusCode::OK, "Admin created")
 }
 
-async fn login(Json(creds): Json<Credentials>) -> Json<bool> {
+async fn login(Json(creds): Json<Credentials>) -> impl IntoResponse {
     let success = validate_login(&creds.username, &creds.password);
-    Json(success)
+    if success {
+        (StatusCode::OK, Json(true))
+    } else {
+        (StatusCode::UNAUTHORIZED, Json(false))
+    }
 }
