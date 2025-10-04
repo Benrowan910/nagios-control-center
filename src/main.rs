@@ -1,18 +1,17 @@
 include!("auth.rs");
 use axum::{
     Json, Router,
-    http::{StatusCode, Uri, Method},
+    http::{Method, StatusCode, Uri},
     response::Response,
     routing::{get, post},
 };
 use include_dir::{Dir, include_dir};
 use mime_guess::from_path;
 use tokio::net::TcpListener;
-use tower_http::cors::Any;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
 
 // Include the built frontend directory
-static FRONTEND_DIR: Dir = include_dir!("dist"); // Adjust path
+static FRONTEND_DIR: Dir = include_dir!("dist");
 
 #[derive(Deserialize)]
 struct Credentials {
@@ -34,6 +33,16 @@ struct AuthResponse {
 
 #[tokio::main]
 async fn main() {
+    println!("🚀 Starting server...");
+
+    // Check if we have frontend files
+    if FRONTEND_DIR.get_file("index.html").is_none() {
+        eprintln!("❌ WARNING: No index.html found in embedded frontend files");
+        eprintln!(
+            "💡 Make sure to build the frontend with 'npm run build' in the frontend directory"
+        );
+    }
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST])
@@ -45,14 +54,15 @@ async fn main() {
         .route("/api/logout", post(logout))
         .route("/api/validate-session", post(validate_session_endpoint))
         .route("/api/needs-setup", get(needs_setup))
-        .fallback(serve_static_files).layer(cors);
+        .fallback(serve_static_files)
+        .layer(cors);
 
     let listener = TcpListener::bind("0.0.0.0:3089").await.unwrap();
     println!(
-        "Server running on http://{}",
+        "✅ Server running on http://{}",
         listener.local_addr().unwrap()
     );
-    // Setup cleanup on graceful shutdown
+
     let graceful = axum::serve(listener, app).with_graceful_shutdown(async {
         tokio::signal::ctrl_c().await.unwrap();
         println!("\nShutting down server...");
@@ -65,37 +75,45 @@ async fn main() {
 
 async fn serve_static_files(uri: Uri) -> Result<Response, StatusCode> {
     let path = uri.path().trim_start_matches('/');
-    
+    println!("🔍 Requested path: '{}'", path);
+
     if path.starts_with("api/") {
+        println!("❌ API route, returning 404");
         return Err(StatusCode::NOT_FOUND);
     }
-    
-    // Serve from frontend/dist
-    let file_path = if path.is_empty() {
-        "frontend/dist/index.html"
-    } else {
-        &format!("dist/{}", path)
-    };
-    
-    match fs::read(file_path) {
-        Ok(content) => {
-            let mime_type = mime_guess::from_path(file_path).first_or_octet_stream();
-            Ok(Response::builder()
-                .header("content-type", mime_type.as_ref())
-                .body(axum::body::Body::from(content))
-                .unwrap())
-        }
-        Err(_) => {
-            // Fallback to index.html for SPA routes
-            match fs::read("frontend/dist/index.html"){
-                Ok(content) => Ok(Response::builder()
-                    .header("content-type", "text/html")
-                    .body(axum::body::Body::from(content))
-                    .unwrap()),
-                Err(_) => Err(StatusCode::NOT_FOUND),
-            }
-        }
+
+    // Use the embedded files from FRONTEND_DIR
+    let file_path = if path.is_empty() { "index.html" } else { path };
+
+    println!("📁 Looking for embedded file: '{}'", file_path);
+
+    // Check if file exists in embedded directory
+    if let Some(file) = FRONTEND_DIR.get_file(file_path) {
+        println!(
+            "✅ Found embedded file: '{}' ({} bytes)",
+            file_path,
+            file.contents().len()
+        );
+        let mime_type = from_path(file_path).first_or_octet_stream();
+        return Ok(Response::builder()
+            .header("content-type", mime_type.as_ref())
+            .body(axum::body::Body::from(file.contents()))
+            .unwrap());
     }
+
+    println!("❌ Embedded file not found: '{}'", file_path);
+
+    // Fallback to index.html for SPA routes
+    if let Some(index_file) = FRONTEND_DIR.get_file("index.html") {
+        println!("🔄 Falling back to index.html for SPA route");
+        return Ok(Response::builder()
+            .header("content-type", "text/html")
+            .body(axum::body::Body::from(index_file.contents()))
+            .unwrap());
+    }
+
+    println!("❌ Index.html also not found in embedded files");
+    Err(StatusCode::NOT_FOUND)
 }
 
 async fn needs_setup() -> Json<bool> {
